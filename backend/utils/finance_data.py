@@ -1,44 +1,72 @@
+# backend/utils/finance_data.py
+from datetime import datetime, timezone
+from logger import get_logger
 import yfinance as yf
-from datetime import datetime
-import logging
 
-# Logger setup
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger = get_logger(__name__)
 
-file_handler = logging.FileHandler("finance_data.log")
-file_handler.setLevel(logging.INFO)
+def get_recent_news(ticker: str, limit: int = 5) -> list[dict]:
+    """
+    Fetch recent news for a ticker via yfinance.
 
-formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-file_handler.setFormatter(formatter)
-logger.addHandler(file_handler)
-
-def get_recent_news(ticker: str, limit: int = 5):
-    logger.info(f"Fetching news for ticker: {ticker}")
-
-    try:
-        stock = yf.Ticker(ticker)
-        news_items = stock.news[:limit] if stock.news else []
-    except Exception as e:
-        logger.error(f"Error fetching news for {ticker}: {e}")
+    Returns a list of dicts:
+    {
+        "headline": str,
+        "url": str,
+        "publisher": str | None,
+        "published_at": str | None,  # ISO-8601 UTC
+        "summary": str               # may be empty
+    }
+    """
+    t = (ticker or "").strip().upper()
+    if not t:
+        logger.warning("get_recent_news called with empty ticker")
         return []
 
-    results = []
-    for item in news_items:
-        title = item.get("title", "")
-        url = item.get("link", "")
-        time = item.get("providerPublishTime")
+    logger.info("Fetching news for %s", t)
 
-        if time:
-            dt = datetime.fromtimestamp(time)
-        else:
-            dt = None
-            logger.warning(f"Missing publish time for article: {title}")
+    try:
+        stock = yf.Ticker(t)
+        items = stock.news or []
+    except Exception:
+        logger.exception("Error fetching news for %s", t)
+        return []
 
+    results: list[dict] = []
+    seen_urls = set()
+
+    for item in items:
+        title = (item.get("title") or "").strip()
+        url = (item.get("link") or "").strip()
         if not title or not url:
-            logger.warning(f"Incomplete article data: {item}")
+            logger.debug("Skipping incomplete article payload: %r", item)
+            continue
+        if url in seen_urls:
+            continue
+        seen_urls.add(url)
 
-        results.append((title, url, dt))
+        ts = item.get("providerPublishTime")
+        published_at = None
+        if ts:
+            # yfinance usually returns seconds; guard for ms just in case
+            try:
+                if ts > 10**12:  # looks like ms
+                    ts = ts / 1000.0
+                dt = datetime.fromtimestamp(float(ts), tz=timezone.utc)
+                published_at = dt.isoformat()
+            except Exception:
+                logger.debug("Bad providerPublishTime %r for %s", ts, url)
 
-    logger.info(f"Fetched {len(results)} news items for {ticker}")
+        results.append({
+            "headline": title,
+            "url": url,
+            "publisher": item.get("publisher"),
+            "published_at": published_at,
+            "summary": (item.get("summary") or "").strip(),  # often empty in yfinance
+        })
+
+        if len(results) >= limit:
+            break
+
+    logger.info("Fetched %d news items for %s", len(results), t)
     return results

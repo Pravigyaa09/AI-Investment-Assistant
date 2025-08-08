@@ -1,12 +1,4 @@
-"""
-logger.py - Centralized logging configuration for Python backend project
-
-Usage:
-    from logger import get_logger
-    logger = get_logger(__name__)
-    logger.info("This is an info message")
-"""
-
+#backend/logger.py
 import logging
 import os
 import sys
