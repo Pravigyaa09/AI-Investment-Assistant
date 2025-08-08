@@ -1,62 +1,33 @@
-from transformers import pipeline
-from typing import List, Union
+# backend/utils/sentiment_model.py
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+import torch
 
-# Load FinBERT pipeline globally (loaded once)
-try:
-    sentiment_pipeline = pipeline("sentiment-analysis", model="ProsusAI/finbert")
-except Exception as e:
-    print(f"Error loading FinBERT model: {e}")
-    sentiment_pipeline = None
+# Load once globally (fast after first call)
+_tokenizer = AutoTokenizer.from_pretrained("yiyanghkust/finbert-tone")
+_model = AutoModelForSequenceClassification.from_pretrained("yiyanghkust/finbert-tone")
+_labels = ["positive", "negative", "neutral"]
 
-def run_finbert(text: Union[str, List[str]]):
-    """
-    Run FinBERT sentiment analysis on input text(s).
+def analyze_sentiment(text: str) -> str:
+    inputs = _tokenizer(text, return_tensors="pt", truncation=True)
+    with torch.no_grad():
+        outputs = _model(**inputs)
+        probs = torch.nn.functional.softmax(outputs.logits, dim=1)
+    pred = torch.argmax(probs, dim=1).item()
+    return _labels[pred]
 
-    Args:
-        text (str or List[str]): Single sentence or list of sentences.
+def map_sentiment_to_signal(positive, negative, neutral):
+    total = positive + negative + neutral
+    if total == 0:
+        return {"signal": "Hold", "confidence": 0.0}
 
-    Returns:
-        dict or List[dict]: Label (str) and Score (float) for each input.
-    """
-    if sentiment_pipeline is None:
-        return {"error": "FinBERT model not loaded"}
+    pr = positive / total
+    nr = negative / total
+    nrml = neutral / total
 
-    if isinstance(text, str):
-        text = text.strip()
-        if not text:
-            return {"error": "Input text is empty"}
-        result = sentiment_pipeline(text)[0]
-        return {
-            "label": result["label"].lower(),
-            "score": round(float(result["score"]), 4)
-        }
-
-    elif isinstance(text, list):
-        results = []
-        for item in text:
-            item = item.strip()
-            if not item:
-                results.append({"error": "Empty input"})
-                continue
-            try:
-                output = sentiment_pipeline(item)[0]
-                results.append({
-                    "label": output["label"].lower(),
-                    "score": round(float(output["score"]), 4)
-                })
-            except Exception as e:
-                results.append({"error": str(e)})
-        return results
-
+    if pr > 0.65:
+        return {"signal": "Buy", "confidence": round(pr, 3)}
+    elif nr > 0.5:
+        return {"signal": "Sell", "confidence": round(nr, 3)}
     else:
-        return {"error": "Invalid input type"}
-
-# Optional CLI test
-if __name__ == "__main__":
-    sample_texts = [
-        "The market outlook is positive for technology stocks.",
-        "Economic indicators are showing signs of a recession.",
-        "",
-        "Investors are cautiously optimistic."
-    ]
-    print(run_finbert(sample_texts))
+        conf = max(nrml, 1 - abs(pr - nr))
+        return {"signal": "Hold", "confidence": round(conf, 3)}
