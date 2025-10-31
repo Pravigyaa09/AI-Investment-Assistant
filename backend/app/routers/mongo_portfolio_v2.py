@@ -1,11 +1,9 @@
 # backend/app/routers/mongo_portfolio_v2.py
 """MongoDB-based portfolio management endpoints - Version 2"""
-
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from pydantic import BaseModel, Field
-
 from app.db import (
     get_repository,
     UserRepository,
@@ -15,11 +13,48 @@ from app.db import (
     MarketDataRepository
 )
 from app.db.schemas import Portfolio, Holding, Trade, PyObjectId
+from bson import ObjectId
 from app.api.deps import get_current_user_mongo  # You'll need to create this
 from app.logger import get_logger
 
 log = get_logger(__name__)
 router = APIRouter(prefix="/portfolio", tags=["Portfolio"])
+
+
+# ========== UTILITY FUNCTIONS ==========
+
+def convert_objectids_to_strings(obj):
+    """Recursively convert ObjectIds to strings in any data structure"""
+    if obj is None:
+        return None
+    elif hasattr(obj, '__dict__') and hasattr(obj, 'model_dump'):
+        # Pydantic model - use model_dump
+        return convert_objectids_to_strings(obj.model_dump())
+    elif hasattr(obj, '__dict__'):
+        # Regular object with __dict__ - convert to dict first
+        try:
+            obj_dict = vars(obj)
+            return convert_objectids_to_strings(obj_dict)
+        except TypeError:
+            # If vars() fails, try converting to string if it looks like ObjectId
+            if 'ObjectId' in str(type(obj)):
+                return str(obj)
+            return str(obj)
+    elif isinstance(obj, dict):
+        # Dictionary - process each key-value pair
+        result = {}
+        for key, value in obj.items():
+            result[key] = convert_objectids_to_strings(value)
+        return result
+    elif isinstance(obj, (list, tuple)):
+        # List or tuple - process each item
+        return [convert_objectids_to_strings(item) for item in obj]
+    elif 'ObjectId' in str(type(obj)):
+        # This is an ObjectId - convert to string
+        return str(obj)
+    else:
+        # Primitive type - return as is
+        return obj
 
 
 # ========== REQUEST/RESPONSE MODELS ==========
@@ -30,7 +65,7 @@ class TradeRequest(BaseModel):
     side: str = Field(..., pattern="^(BUY|SELL)$")
     quantity: float = Field(..., gt=0)
     price: float = Field(..., gt=0)
-    order_type: str = Field(default="MARKET", pattern="^(MARKET|LIMIT)$")
+    
 
 
 class DepositRequest(BaseModel):
@@ -147,62 +182,6 @@ async def get_portfolio(
             detail="Failed to fetch portfolio"
         )
 
-
-@router.post("/trade", response_model=TradeResponse)
-async def execute_trade(
-    trade_request: TradeRequest,
-    current_user: dict = Depends(get_current_user_mongo)
-):
-    """Execute a buy or sell trade"""
-    try:
-        user_repo: UserRepository = get_repository(UserRepository)
-        trade_repo: TradeRepository = get_repository(TradeRepository)
-        
-        # Create trade object
-        trade = Trade(
-            user_id=PyObjectId(str(current_user["_id"])),
-            ticker=trade_request.ticker.upper(),
-            side=trade_request.side,
-            quantity=trade_request.quantity,
-            price=trade_request.price,
-            commission=trade_request.quantity * trade_request.price * 0.001  # 0.1% commission
-        )
-        
-        # Execute trade
-        trade_id = await trade_repo.execute_trade(trade, user_repo)
-        
-        if not trade_id:
-            if trade.side == "BUY":
-                detail = "Insufficient funds for this trade"
-            else:
-                detail = "Insufficient shares to sell"
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=detail
-            )
-        
-        return TradeResponse(
-            trade_id=trade_id,
-            ticker=trade.ticker,
-            side=trade.side,
-            quantity=trade.quantity,
-            price=trade.price,
-            total_value=trade.total_value,
-            commission=trade.commission,
-            executed_at=trade.executed_at,
-            message=f"{trade.side} order executed successfully"
-        )
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        log.error(f"Error executing trade: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to execute trade"
-        )
-
-
 @router.get("/trades")
 async def get_trade_history(
     limit: int = Query(50, ge=1, le=500),
@@ -233,9 +212,12 @@ async def get_trade_history(
         
         trades = await trade_repo.find_many(filter_dict, limit=limit)
         
+        # Convert ObjectIds in trades
+        trades_converted = convert_objectids_to_strings(trades)
+        
         return {
-            "trades": trades,
-            "count": len(trades),
+            "trades": trades_converted,
+            "count": len(trades_converted) if trades_converted else 0,
             "offset": offset,
             "limit": limit
         }
@@ -246,63 +228,6 @@ async def get_trade_history(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to fetch trade history"
         )
-
-
-@router.get("/holdings/{ticker}")
-async def get_holding_details(
-    ticker: str,
-    current_user: dict = Depends(get_current_user_mongo)
-):
-    """Get detailed information about a specific holding"""
-    try:
-        user_repo: UserRepository = get_repository(UserRepository)
-        trade_repo: TradeRepository = get_repository(TradeRepository)
-        score_repo: AIScoreRepository = get_repository(AIScoreRepository)
-        
-        portfolio = await user_repo.get_portfolio(str(current_user["_id"]))
-        if not portfolio:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Portfolio not found"
-            )
-        
-        # Find the holding
-        ticker_upper = ticker.upper()
-        holding = None
-        for h in portfolio.holdings:
-            if h.ticker == ticker_upper:
-                holding = h
-                break
-        
-        if not holding:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"No holding found for {ticker_upper}"
-            )
-        
-        # Get trade history
-        trades = await trade_repo.find_by_ticker(str(current_user["_id"]), ticker_upper)
-        
-        # Get latest AI score if available
-        ai_score = await score_repo.find_latest(str(current_user["_id"]), ticker_upper)
-        
-        return {
-            "holding": holding.model_dump(),
-            "trades": trades,
-            "trade_count": len(trades),
-            "ai_score": ai_score,
-            "portfolio_weight": (holding.current_value / portfolio.total_value * 100) if portfolio.total_value > 0 else 0
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        log.error(f"Error fetching holding details: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to fetch holding details"
-        )
-
 
 @router.post("/deposit")
 async def deposit_cash(
@@ -497,18 +422,26 @@ async def get_performance_metrics(
         )
 
 
-@router.delete("/holdings/{ticker}")
-async def close_position(
+@router.get("/holdings/{ticker}")
+async def get_holding_details(
     ticker: str,
     current_user: dict = Depends(get_current_user_mongo)
 ):
-    """Close a position (sell all shares of a ticker)"""
+    """Get detailed information about a specific holding"""
     try:
         user_repo: UserRepository = get_repository(UserRepository)
         trade_repo: TradeRepository = get_repository(TradeRepository)
-        market_repo: MarketDataRepository = get_repository(MarketDataRepository)
+        score_repo: AIScoreRepository = get_repository(AIScoreRepository)
         
-        portfolio = await user_repo.get_portfolio(str(current_user["_id"]))
+        # Handle user_id conversion properly
+        user_id = str(current_user["_id"]) if current_user.get("_id") else None
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid user ID"
+            )
+        
+        portfolio = await user_repo.get_portfolio(user_id)
         if not portfolio:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -526,21 +459,179 @@ async def close_position(
         if not holding:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"No holding found for {ticker_upper}"
+            )
+        
+        # Get trade history
+        trades = await trade_repo.find_by_ticker(user_id, ticker_upper)
+        
+        # Get latest AI score if available
+        ai_score = await score_repo.find_latest(user_id, ticker_upper)
+        
+        # Handle potential division by zero
+        portfolio_weight = 0
+        if portfolio.total_value and portfolio.total_value > 0:
+            portfolio_weight = (holding.current_value / portfolio.total_value * 100)
+        
+        # Convert all ObjectIds to strings
+        holding_dict = convert_objectids_to_strings(holding)
+        trades_processed = convert_objectids_to_strings(trades) if trades else []
+        ai_score_processed = convert_objectids_to_strings(ai_score) if ai_score else None
+        
+        return {
+            "holding": holding_dict,
+            "trades": trades_processed,
+            "trade_count": len(trades_processed) if trades_processed else 0,
+            "ai_score": ai_score_processed,
+            "portfolio_weight": portfolio_weight
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        log.error(f"Error fetching holding details: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch holding details"
+        )
+
+
+# Fixed portfolio routes
+
+@router.post("/trade", response_model=TradeResponse)
+async def execute_trade(
+    trade_request: TradeRequest,
+    current_user: dict = Depends(get_current_user_mongo)
+):
+    """Execute a buy or sell trade"""
+    try:
+        user_repo: UserRepository = get_repository(UserRepository)
+        trade_repo: TradeRepository = get_repository(TradeRepository)
+        
+        # Get user_id as string - the Trade model will handle conversion
+        user_id = current_user["_id"]
+        
+        # Calculate commission (0.1% of trade value)
+        commission = trade_request.quantity * trade_request.price * 0.001
+        
+        # Create trade object - pass user_id as string
+        trade = Trade(
+            user_id=user_id,  # Pass as string, model handles conversion
+            ticker=trade_request.ticker.upper(),
+            side=trade_request.side,
+            quantity=trade_request.quantity,
+            price=trade_request.price,
+            commission=commission,
+            total_value=trade_request.quantity * trade_request.price
+        )
+        
+        # Execute trade
+        trade_id = await trade_repo.execute_trade(trade, user_repo)
+        
+        if not trade_id:
+            if trade.side == "BUY":
+                detail = "Insufficient funds for this trade"
+            else:
+                detail = "Insufficient shares to sell"
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=detail
+            )
+        
+        # Convert trade_id to string for response
+        trade_id_str = str(trade_id) if trade_id else None
+        
+        return TradeResponse(
+            trade_id=trade_id_str,
+            ticker=trade.ticker,
+            side=trade.side,
+            quantity=trade.quantity,
+            price=trade.price,
+            total_value=trade.total_value,
+            commission=trade.commission,
+            executed_at=trade.executed_at,
+            message=f"{trade.side} order executed successfully"
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        log.error(f"Error executing trade: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to execute trade"
+        )
+
+
+@router.delete("/holdings/{ticker}")
+async def close_position(
+    ticker: str,
+    current_user: dict = Depends(get_current_user_mongo)
+):
+    """Close a position (sell all shares of a ticker)"""
+    try:
+        user_repo: UserRepository = get_repository(UserRepository)
+        trade_repo: TradeRepository = get_repository(TradeRepository)
+        market_repo: MarketDataRepository = get_repository(MarketDataRepository)
+        
+        # Get user_id as string
+        user_id = str(current_user["_id"]) if current_user.get("_id") else None
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid user ID"
+            )
+        
+        # Get portfolio
+        portfolio = await user_repo.get_portfolio(user_id)
+        if not portfolio:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Portfolio not found"
+            )
+        
+        # Find the holding for this ticker
+        ticker_upper = ticker.upper()
+        holding = None
+        for h in portfolio.holdings:
+            if h.ticker == ticker_upper:
+                holding = h
+                break
+        
+        if not holding:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"No position found for {ticker_upper}"
             )
         
+        # Check if position has any shares to sell
+        if holding.quantity <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"No shares to sell for {ticker_upper}"
+            )
+        
         # Get current market price
-        market_data = await market_repo.find_by_ticker(ticker_upper)
-        current_price = market_data["current_price"] if market_data else holding.last_price
+        current_price = holding.last_price  # Default fallback
+        try:
+            market_data = await market_repo.find_by_ticker(ticker_upper)
+            if market_data and market_data.get("current_price"):
+                current_price = market_data["current_price"]
+        except Exception as e:
+            log.warning(f"Could not fetch current market price for {ticker_upper}: {e}")
+        
+        # Calculate commission
+        commission = holding.quantity * current_price * 0.001
         
         # Create sell trade for entire position
         trade = Trade(
-            user_id=PyObjectId(str(current_user["_id"])),
+            user_id=user_id,  # Pass as string, model handles conversion
             ticker=ticker_upper,
             side="SELL",
             quantity=holding.quantity,
             price=current_price,
-            commission=holding.quantity * current_price * 0.001
+            commission=commission,
+            total_value=holding.quantity * current_price
         )
         
         # Execute trade
@@ -548,19 +639,22 @@ async def close_position(
         
         if not trade_id:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to close position"
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Failed to close position - insufficient shares or execution error"
             )
         
-        return {
+        # Prepare response
+        response_data = {
             "success": True,
             "message": f"Position closed for {ticker_upper}",
-            "trade_id": trade_id,
+            "trade_id": str(trade_id) if trade_id else None,
             "quantity_sold": holding.quantity,
             "price": current_price,
             "total_value": trade.total_value,
-            "realized_pnl": holding.pnl
+            "realized_pnl": holding.pnl if hasattr(holding, 'pnl') else None
         }
+        
+        return response_data
         
     except HTTPException:
         raise

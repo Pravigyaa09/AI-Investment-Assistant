@@ -5,10 +5,9 @@ from datetime import datetime, timedelta, timezone
 from statistics import pstdev
 from typing import List, Dict, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
 
-from app.db.session import get_db
-from app.db import models
+from app.db import get_repository, UserRepository
+from app.api.deps import get_current_user_mongo
 from app.services.market_data import (
     get_quote,
     get_candles_close,
@@ -95,34 +94,41 @@ def _rule_signal(pos: int, neg: int, neu: int) -> tuple[str, float]:
     if n >= 0.60: return "Sell", round(n, 3)
     return "Hold", round(1 - abs(p - n), 3)
 
-def _analyze_one(
-    db: Session,
+async def _analyze_one(
     ticker: str,
     *,
     days: int,
     top_n_news: int,
     horizon_days: int,
+    user_id: Optional[str] = None
 ) -> Dict:
     t = (ticker or "").upper().strip()
     if not t:
         raise HTTPException(status_code=400, detail="ticker is required")
 
     price = float(get_quote(t))
-    holding = db.query(models.PortfolioHolding).filter_by(ticker=t).one_or_none()
+    
+    # Check if user has holding (MongoDB)
     position = None
-    if holding:
-        mv = price * holding.quantity
-        cost = holding.avg_cost * holding.quantity
-        pnl_abs = mv - cost
-        pnl_pct = (pnl_abs / cost) if cost > 0 else 0.0
-        position = {
-            "quantity": holding.quantity,
-            "avg_cost": holding.avg_cost,
-            "last_price": price,
-            "market_value": round(mv, 2),
-            "pnl_abs": round(pnl_abs, 2),
-            "pnl_pct": round(pnl_pct, 4),
-        }
+    if user_id:
+        user_repo = get_repository(UserRepository)
+        portfolio = await user_repo.get_portfolio(user_id)
+        if portfolio:
+            for holding in portfolio.holdings:
+                if holding.ticker == t:
+                    mv = price * holding.quantity
+                    cost = holding.avg_cost * holding.quantity
+                    pnl_abs = mv - cost
+                    pnl_pct = (pnl_abs / cost) if cost > 0 else 0.0
+                    position = {
+                        "quantity": holding.quantity,
+                        "avg_cost": holding.avg_cost,
+                        "last_price": price,
+                        "market_value": round(mv, 2),
+                        "pnl_abs": round(pnl_abs, 2),
+                        "pnl_pct": round(pnl_pct, 4),
+                    }
+                    break
 
     closes = get_candles_close(t, days=days)
     trend = simple_trend_score(closes)
@@ -165,23 +171,30 @@ def _analyze_one(
 
 # ---------- single-ticker ----------
 @router.get("/stocks/{ticker}/analysis")
-def analyze_stock(
+async def analyze_stock(
     ticker: str,
     days: int = Query(90, ge=10, le=365),
     top_n_news: int = Query(8, ge=1, le=25),
     horizon_days: int = Query(21, ge=5, le=90),
-    db: Session = Depends(get_db),
+    current_user: Optional[dict] = Depends(get_current_user_mongo)
 ):
-    return _analyze_one(db, ticker, days=days, top_n_news=top_n_news, horizon_days=horizon_days)
+    user_id = str(current_user["_id"]) if current_user else None
+    return await _analyze_one(
+        ticker, 
+        days=days, 
+        top_n_news=top_n_news, 
+        horizon_days=horizon_days,
+        user_id=user_id
+    )
 
 # ---------- multi-ticker (batch) ----------
 @router.get("/stocks/analysis")
-def analyze_stocks_batch(
+async def analyze_stocks_batch(
     tickers: str = Query(..., description="Comma-separated list, e.g. AAPL,MSFT,TSLA"),
     days: int = Query(90, ge=10, le=365),
     top_n_news: int = Query(4, ge=1, le=15),
     horizon_days: int = Query(21, ge=5, le=90),
-    db: Session = Depends(get_db),
+    current_user: Optional[dict] = Depends(get_current_user_mongo)
 ):
     # parse, de-dup, cap size to protect server
     raw = [t.strip().upper() for t in tickers.split(",") if t.strip()]
@@ -194,10 +207,18 @@ def analyze_stocks_batch(
     if len(uniq) > 20:
         uniq = uniq[:20]
 
+    user_id = str(current_user["_id"]) if current_user else None
     results: List[Dict] = []
     for t in uniq:
         try:
-            results.append(_analyze_one(db, t, days=days, top_n_news=top_n_news, horizon_days=horizon_days))
+            result = await _analyze_one(
+                t, 
+                days=days, 
+                top_n_news=top_n_news, 
+                horizon_days=horizon_days,
+                user_id=user_id
+            )
+            results.append(result)
         except HTTPException as he:
             results.append({"ticker": t, "error": he.detail})
         except Exception as e:
@@ -207,9 +228,9 @@ def analyze_stocks_batch(
 
 # Keep your debug endpoint
 @router.post("/_debug/send-digest")
-def _debug_send_digest():
+async def _debug_send_digest():
     try:
         from app.tasks.daily_digest import send_morning_digest
-        return send_morning_digest()
+        return await send_morning_digest()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

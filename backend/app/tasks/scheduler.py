@@ -135,15 +135,47 @@ def _detect_significant_changes(current_results: List[Dict]) -> List[Dict]:
     
     return significant_changes
 
+async def _fetch_user_tickers(user_email: str) -> List[str]:
+    """Fetch tickers from user's portfolio"""
+    try:
+        from app.db import get_repository, UserRepository
+        user_repo = get_repository(UserRepository)
+        user = await user_repo.find_by_email(user_email)
+        if user and user.get("portfolio"):
+            holdings = user["portfolio"].get("holdings", [])
+            tickers = [h["ticker"] for h in holdings if h.get("ticker")]
+            log.info(f"Fetched {len(tickers)} tickers from user {user_email}'s portfolio")
+            return tickers
+    except Exception as e:
+        log.warning(f"Failed to fetch user portfolio: {e}")
+    return settings.WATCH_TICKERS or ["AAPL", "MSFT"]
+
 def job_fetch_and_score():
-    """Enhanced job that includes WhatsApp alerting"""
+    """Enhanced job that includes WhatsApp alerting based on user portfolio"""
     when = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    log.info("[SCHEDULE] running at %s for tickers=%s", when, settings.WATCH_TICKERS)
-    
+
+    # Fetch user's portfolio tickers
+    user_email = "rvit22bis025.rvitm@rvei.edu.in"
+
+    import asyncio
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+    if loop.is_running():
+        # Can't use await in sync function, use fallback
+        tickers = settings.WATCH_TICKERS
+    else:
+        tickers = loop.run_until_complete(_fetch_user_tickers(user_email))
+
+    log.info("[SCHEDULE] running at %s for user %s tickers=%s", when, user_email, tickers)
+
     current_results = []
-    
+
     # Analyze each ticker
-    for ticker in settings.WATCH_TICKERS:
+    for ticker in tickers:
         try:
             result = _score_one_ticker(ticker)
             current_results.append(result)
@@ -198,25 +230,30 @@ def job_fetch_and_score():
             log.error("[SCHEDULE] Failed to send WhatsApp alert: %s", e)
 
 def job_daily_digest():
-    """Send daily market digest via WhatsApp"""
+    """Send daily market digest via WhatsApp based on user's portfolio"""
     try:
-        log.info("[SCHEDULE] Sending daily WhatsApp digest")
-        
-        # You can enhance this to include actual sentiment data
+        log.info("[SCHEDULE] Sending personalized daily WhatsApp digest")
+
+        # Import here to avoid circular imports
+        from app.tasks.daily_digest import send_morning_digest
+
+        # Use the specific user's email from settings
+        user_email = "rvit22bis025.rvitm@rvei.edu.in"  # Your email
+
         import asyncio
         try:
             loop = asyncio.get_event_loop()
         except RuntimeError:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
-        
+
         if loop.is_running():
-            asyncio.create_task(send_daily_digest(settings.WATCH_TICKERS))
+            asyncio.create_task(send_morning_digest(user_email=user_email))
         else:
-            loop.run_until_complete(send_daily_digest(settings.WATCH_TICKERS))
-            
-        log.info("[SCHEDULE] Daily digest sent")
-        
+            loop.run_until_complete(send_morning_digest(user_email=user_email))
+
+        log.info(f"[SCHEDULE] Daily digest sent for user: {user_email}")
+
     except Exception as e:
         log.error("[SCHEDULE] Failed to send daily digest: %s", e)
 

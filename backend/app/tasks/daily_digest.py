@@ -95,16 +95,17 @@ def _format_digest_line(ticker: str, px: float, change: float | None) -> str:
     return f"{ticker}: {px:.2f}{chg}"
 
 
-def send_morning_digest(watch: Optional[List[str]] = None) -> dict:
+async def send_morning_digest(watch: Optional[List[str]] = None, user_email: Optional[str] = None) -> dict:
     """
     Build and send a morning digest via WhatsApp with:
-      • latest price for each watch ticker
+      • latest price for each watch ticker (from user's portfolio)
       • quick news headlines with sentiment
     Prefers WhatsApp Content Template (TWILIO_CONTENT_SID), falls back to plain text on error.
     """
     # Local imports to avoid circular imports
     from app.services.market_data import get_quote, get_previous_close
     from app.services.finnhub_client import fetch_company_news
+    from app.db import get_repository, UserRepository
 
     # Try FinBERT, fall back to simple keywords
     try:
@@ -114,6 +115,20 @@ def send_morning_digest(watch: Optional[List[str]] = None) -> dict:
         FinBERT = None  # type: ignore
         finbert_ready = False
 
+    # Fetch user's portfolio holdings if email provided
+    if user_email and not watch:
+        try:
+            user_repo = get_repository(UserRepository)
+            user = await user_repo.find_by_email(user_email)
+            if user and user.get("portfolio"):
+                holdings = user["portfolio"].get("holdings", [])
+                watch = [h["ticker"] for h in holdings if h.get("ticker")]
+                log.info(f"Fetched {len(watch)} tickers from user {user_email}'s portfolio: {watch}")
+        except Exception as e:
+            log.warning(f"Failed to fetch user portfolio: {e}")
+            watch = None
+
+    # Fallback to config or defaults
     watch = watch or (settings.WATCH_TICKERS or ["AAPL", "MSFT"])
 
     # --- Prices block ---

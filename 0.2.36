@@ -1,0 +1,90 @@
+Collecting yfinance
+  Downloading yfinance-0.2.65-py2.py3-none-any.whl.metadata (5.8 kB)
+Collecting pandas>=1.3.0 (from yfinance)
+  Downloading pandas-2.3.1-cp311-cp311-win_amd64.whl.metadata (19 kB)
+Requirement already satisfied: numpy>=1.16.5 in c:\users\91861\onedrive\desktop\ai-investment-assistant\backend\venv\lib\site-packages (from yfinance) (2.3.2)
+Requirement already satisfied: requests>=2.31 in c:\users\91861\onedrive\desktop\ai-investment-assistant\backend\venv\lib\site-packages (from yfinance) (2.32.4)
+Collecting multitasking>=0.0.7 (from yfinance)
+  Downloading multitasking-0.0.12.tar.gz (19 kB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Collecting platformdirs>=2.0.0 (from yfinance)
+  Downloading platformdirs-4.3.8-py3-none-any.whl.metadata (12 kB)
+Collecting pytz>=2022.5 (from yfinance)
+  Downloading pytz-2025.2-py2.py3-none-any.whl.metadata (22 kB)
+Collecting frozendict>=2.3.4 (from yfinance)
+  Downloading frozendict-2.4.6-py311-none-any.whl.metadata (23 kB)
+Collecting peewee>=3.16.2 (from yfinance)
+  Downloading peewee-3.18.2.tar.gz (949 kB)
+     ------------------------------------- 949.2/949.2 kB 12.0 MB/s eta 0:00:00
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Collecting beautifulsoup4>=4.11.1 (from yfinance)
+  Downloading beautifulsoup4-4.13.4-py3-none-any.whl.metadata (3.8 kB)
+Collecting curl_cffi>=0.7 (from yfinance)
+  Downloading curl_cffi-0.12.0-cp39-abi3-win_amd64.whl.metadata (15 kB)
+Collecting protobuf>=3.19.0 (from yfinance)
+  Downloading protobuf-6.31.1-cp310-abi3-win_amd64.whl.metadata (593 bytes)
+Collecting websockets>=13.0 (from yfinance)
+  Downloading websockets-15.0.1-cp311-cp311-win_amd64.whl.metadata (7.0 kB)
+Collecting soupsieve>1.2 (from beautifulsoup4>=4.11.1->yfinance)
+  Downloading soupsieve-2.7-py3-none-any.whl.metadata (4.6 kB)
+Requirement already satisfied: typing-extensions>=4.0.0 in c:\users\91861\onedrive\desktop\ai-investment-assistant\backend\venv\lib\site-packages (from beautifulsoup4>=4.11.1->yfinance) (4.14.1)
+Collecting cffi>=1.12.0 (from curl_cffi>=0.7->yfinance)
+  Downloading cffi-1.17.1-cp311-cp311-win_amd64.whl.metadata (1.6 kB)
+Requirement already satisfied: certifi>=2024.2.2 in c:\users\91861\onedrive\desktop\ai-investment-assistant\backend\venv\lib\site-packages (from curl_cffi>=0.7->yfinance) (2025.7.14)
+Collecting python-dateutil>=2.8.2 (from pandas>=1.3.0->yfinance)
+  Using cached python_dateutil-2.9.0.post0-py2.py3-none-any.whl.metadata (8.4 kB)
+Collecting tzdata>=2022.7 (from pandas>=1.3.0->yfinance)
+  Downloading tzdata-2025.2-py2.py3-none-any.whl.metadata (1.4 kB)
+Requirement already satisfied: charset_normalizer<4,>=2 in c:\users\91861\onedrive\desktop\ai-investment-assistant\backend\venv\lib\site-packages (from requests>=2.31->yfinance) (3.4.2)
+Requirement already satisfied: idna<4,>=2.5 in c:\users\91861\onedrive\desktop\ai-investment-assistant\backend\venv\lib\site-packages (from requests>=2.31->yfinance) (3.10)
+Requirement already satisfied: urllib3<3,>=1.21.1 in c:\users\91861\onedrive\desktop\ai-investment-assistant\backend\venv\lib\site-packages (from requests>=2.31->yfinance) (2.5.0)
+Collecting pycparser (from cffi>=1.12.0->curl_cffi>=0.7->yfinance)
+  Downloading pycparser-2.22-py3-none-any.whl.metadata (943 bytes)
+Collecting six>=1.5 (from python-dateutil>=2.8.2->pandas>=1.3.0->yfinance)
+  Using cached six-1.17.0-py2.py3-none-any.whl.metadata (1.7 kB)
+Downloading yfinance-0.2.65-py2.py3-none-any.whl (119 kB)
+   ---------------------------------------- 119.4/119.4 kB 7.3 MB/s eta 0:00:00
+Downloading beautifulsoup4-4.13.4-py3-none-any.whl (187 kB)
+   ---------------------------------------- 187.3/187.3 kB 5.7 MB/s eta 0:00:00
+Downloading curl_cffi-0.12.0-cp39-abi3-win_amd64.whl (1.6 MB)
+   ---------------------------------------- 1.6/1.6 MB 25.8 MB/s eta 0:00:00
+Downloading frozendict-2.4.6-py311-none-any.whl (16 kB)
+Downloading pandas-2.3.1-cp311-cp311-win_amd64.whl (11.3 MB)
+   ---------------------------------------- 11.3/11.3 MB 34.5 MB/s eta 0:00:00
+Downloading platformdirs-4.3.8-py3-none-any.whl (18 kB)
+Downloading protobuf-6.31.1-cp310-abi3-win_amd64.whl (435 kB)
+   ---------------------------------------- 435.3/435.3 kB 9.2 MB/s eta 0:00:00
+Downloading pytz-2025.2-py2.py3-none-any.whl (509 kB)
+   --------------------------------------- 509.2/509.2 kB 16.1 MB/s eta 0:00:00
+Downloading websockets-15.0.1-cp311-cp311-win_amd64.whl (176 kB)
+   ---------------------------------------- 176.8/176.8 kB 5.4 MB/s eta 0:00:00
+Downloading cffi-1.17.1-cp311-cp311-win_amd64.whl (181 kB)
+   ---------------------------------------- 181.4/181.4 kB 5.5 MB/s eta 0:00:00
+Using cached python_dateutil-2.9.0.post0-py2.py3-none-any.whl (229 kB)
+Downloading soupsieve-2.7-py3-none-any.whl (36 kB)
+Downloading tzdata-2025.2-py2.py3-none-any.whl (347 kB)
+   --------------------------------------- 347.8/347.8 kB 10.9 MB/s eta 0:00:00
+Using cached six-1.17.0-py2.py3-none-any.whl (11 kB)
+Downloading pycparser-2.22-py3-none-any.whl (117 kB)
+   ---------------------------------------- 117.6/117.6 kB 3.5 MB/s eta 0:00:00
+Building wheels for collected packages: multitasking, peewee
+  Building wheel for multitasking (pyproject.toml): started
+  Building wheel for multitasking (pyproject.toml): finished with status 'done'
+  Created wheel for multitasking: filename=multitasking-0.0.12-py3-none-any.whl size=15703 sha256=a03a0dbc271a4b8519b984145728f0b0aa36db5faa553cd55ddda02699d1f3ad
+  Stored in directory: c:\users\91861\appdata\local\pip\cache\wheels\42\d6\84\bf57a755f4569494cd00de4bb46ef064874823f4d19c82e960
+  Building wheel for peewee (pyproject.toml): started
+  Building wheel for peewee (pyproject.toml): finished with status 'done'
+  Created wheel for peewee: filename=peewee-3.18.2-py3-none-any.whl size=139153 sha256=0ecdb6f39e1e118144f99965cd571c155b270d15c4770c1bde65da551ccb9424
+  Stored in directory: c:\users\91861\appdata\local\pip\cache\wheels\28\84\61\758d1bd7b9c9d700158c8642a8aff2a9bf2e1ae69641c40784
+Successfully built multitasking peewee
+Installing collected packages: pytz, peewee, multitasking, websockets, tzdata, soupsieve, six, pycparser, protobuf, platformdirs, frozendict, python-dateutil, cffi, beautifulsoup4, pandas, curl_cffi, yfinance

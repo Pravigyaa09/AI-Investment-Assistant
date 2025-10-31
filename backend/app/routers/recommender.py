@@ -1,3 +1,4 @@
+#backend/app/routers/recommender.py
 from __future__ import annotations
 
 from math import sqrt
@@ -195,7 +196,7 @@ def _analyze_one(ticker: str, horizon_days: int, top_n_news: int) -> dict:
     }
 
 
-@router.get("/ml/recommend")
+@router.get("/recommend")
 def recommend_get(
     ticker: Optional[str] = Query(None, description="Single ticker, e.g. NVDA"),
     tickers: Optional[str] = Query(None, description="Comma-separated list, e.g. NVDA,AAPL,MSFT"),
@@ -215,7 +216,7 @@ def recommend_get(
     return results[0] if len(results) == 1 else {"results": results}
 
 
-@router.post("/ml/recommend")
+@router.post("/recommend")
 def recommend_post(
     payload: dict = Body(..., example={"tickers": ["NVDA", "AAPL"], "horizon_days": 21, "top_n_news": 6})
 ):
@@ -245,8 +246,11 @@ async def list_recommendations(
     tickers: Optional[str] = Query(None, description="Comma-separated tickers to filter"),
     limit: int = Query(100, ge=1, le=500),
 ):
+    from bson import ObjectId
     db = get_db()
-    filt = {"user_id": user_id}  # adapt if you store ObjectId for users
+    # Convert user_id to ObjectId if valid, otherwise keep as string
+    uid = ObjectId(user_id) if ObjectId.is_valid(user_id) else user_id
+    filt = {"user_id": uid}
     if tickers:
         tick_list = [t.strip().upper() for t in tickers.split(",") if t.strip()]
         filt["ticker"] = {"$in": tick_list}

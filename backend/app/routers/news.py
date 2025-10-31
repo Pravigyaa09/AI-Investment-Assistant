@@ -1,3 +1,4 @@
+#backend/app/routers/news.py
 from fastapi import APIRouter, HTTPException, Query
 from app.utils.validators import validate_ticker
 from app.services.finnhub_client import fetch_company_news

@@ -113,9 +113,15 @@ async def evaluate_one(user_id: str, ticker: str) -> Dict[str, Any]:
     db = get_db()
     uid = ObjectId(user_id) if ObjectId.is_valid(user_id) else user_id  # support string ids too
 
-    # are we holding it?
-    holding = await db["holdings"].find_one({"user_id": uid, "ticker": t})
-    owned = bool(holding and float(holding.get("qty", 0)) > 0)
+    # are we holding it? Check portfolio.holdings embedded in users collection
+    user = await db["users"].find_one({"_id": uid})
+    owned = False
+    if user and user.get("portfolio"):
+        holdings = user["portfolio"].get("holdings", [])
+        for h in holdings:
+            if h.get("ticker") == t and float(h.get("quantity", 0)) > 0:
+                owned = True
+                break
 
     # features
     price = float(get_quote(t) or 0.0)

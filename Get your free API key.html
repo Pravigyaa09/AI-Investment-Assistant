@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<!-- saved from url=(0027)https://finnhub.io/register -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta http-equiv="origin-trial" content="A7vZI3v+Gz7JfuRolKNM4Aff6zaGuT7X0mf3wtoZTnKv6497cVMnhy03KDqX7kBz/q/iidW7srW31oQbBt4VhgoAAACUeyJvcmlnaW4iOiJodHRwczovL3d3dy5nb29nbGUuY29tOjQ0MyIsImZlYXR1cmUiOiJEaXNhYmxlVGhpcmRQYXJ0eVN0b3JhZ2VQYXJ0aXRpb25pbmczIiwiZXhwaXJ5IjoxNzU3OTgwODAwLCJpc1N1YmRvbWFpbiI6dHJ1ZSwiaXNUaGlyZFBhcnR5Ijp0cnVlfQ==">
+    
+<meta name="author" content="Finnhub.io">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
+<link rel="shortcut icon" href="./Get your free API key_files/finnhub-logo.webp">
+
+
+<script type="text/javascript" async="" charset="utf-8" src="./Get your free API key_files/recaptcha__en.js.download" crossorigin="anonymous" integrity="sha384-TG5g5Dk43Fs+5i/7xL9a4bBQ4Pg/EAutBT8nLaRiYl1GoFPQDxyCkJYzTQEw2Njo"></script><script type="text/javascript" async="" src="./Get your free API key_files/analytics.js.download"></script><script type="text/javascript" async="" src="./Get your free API key_files/js"></script><script async="" src="./Get your free API key_files/js(1)"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+
+  function gtag() {
+    dataLayer.push(arguments);
+  }
+
+  gtag('js', new Date());
+
+  gtag('config', 'UA-64068110-3');
+</script>
+
+<link rel="stylesheet" href="./Get your free API key_files/bootstrap.min.css">
+
+<script src="./Get your free API key_files/jquery.min.js.download"></script>
+<script src="./Get your free API key_files/jquery.easing.min.js.download"></script>
+
+<script src="./Get your free API key_files/popper.min.js.download"></script>
+<script src="./Get your free API key_files/bootstrap.min.js.download"></script>
+
+<script src="./Get your free API key_files/react.production.min.js.download"></script>
+<script src="./Get your free API key_files/react-dom.production.min.js.download"></script>
+
+<link href="./Get your free API key_files/iziToast.min.css" rel="stylesheet">
+<script src="./Get your free API key_files/iziToast.min.js.download"></script>
+<link rel="stylesheet" href="./Get your free API key_files/all.min.css">
+
+<script src="./Get your free API key_files/jquery.waypoints.min.js.download"></script>
+<script src="./Get your free API key_files/redux.min.js.download"></script>
+<script src="./Get your free API key_files/react-redux.min.js.download"></script>
+<script src="./Get your free API key_files/saved_resource"></script>
+
+<link rel="stylesheet" type="text/css" href="./Get your free API key_files/ldbtn.min.css">
+<link rel="stylesheet" href="./Get your free API key_files/loading.min.css">
+
+<script type="text/javascript">
+
+  var protocol = location.protocol;
+  var wsprotocol
+  if (protocol === "https:") {
+    wsprotocol = "wss:";
+  } else {
+    wsprotocol = "ws:";
+  }
+  var slashes = protocol.concat("//");
+  var host = slashes.concat(window.location.host);
+
+  window.wsUrl = ""
+  if (window.wsUrl === '') {
+    window.wsUrl = window.location.host
+  }
+
+  window.pushNoti = function toastrNoti(message, duration, type) {
+    if (type === "error") {
+      iziToast.error({
+        title: 'Error',
+        message: message,
+        theme: 'dark',
+        backgroundColor: "#3e3e3e",
+        messageColor: "white",
+        titleColor: "#f44242",
+        position: 'bottomCenter',
+        timeout: duration,
+        class: 'toaster',
+      });
+    } else {
+      iziToast.success({
+        title: 'OK',
+        message: message,
+        theme: 'dark',
+        backgroundColor: "#3e3e3e",
+        messageColor: "white",
+        titleColor: "#1db954",
+        position: 'bottomCenter',
+        timeout: duration,
+        class: 'toaster',
+      });
+    }
+  }
+
+  window.getCookie = function getcookie(cname) {
+    var name = cname + "=";
+    var decodedCookie = decodeURIComponent(document.cookie);
+    var ca = decodedCookie.split(';');
+    for (var i = 0; i < ca.length; i++) {
+      var c = ca[i];
+      while (c.charAt(0) == ' ') {
+        c = c.substring(1);
+      }
+      if (c.indexOf(name) == 0) {
+        return c.substring(name.length, c.length);
+      }
+    }
+    return "";
+  }
+
+  window.setCookie = function setcookie(cname, cvalue, exdays) {
+    var d = new Date();
+    d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
+    var expires = "expires=" + d.toUTCString();
+    document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+  }
+
+  window.toTitle = function toTitleCase(str) {
+    return str.replace(/\w\S*/g, function (txt) {
+      return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+    });
+  }
+
+  window.getUrlParams = function (key) {
+    let url = location.href
+    var params = {};
+    (url + '?').split('?')[1].split('&').forEach(function (pair) {
+      pair = (pair + '=').split('=').map(decodeURIComponent);
+      if (pair[0].length) {
+        params[pair[0]] = pair[1];
+      }
+    });
+    return params[key];
+  };
+
+  window.stripHtml = function (html) {
+    let tmp = document.createElement("DIV");
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || "";
+  }
+
+  window.timeConverter = function tConverter(UNIX_timestamp) {
+    var a = new Date(UNIX_timestamp * 1000);
+    var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    var dates = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    var month = months[a.getMonth()];
+    var date = a.getDate();
+    var time = dates[a.getDay()] + ' ' + month + ' ' + date
+    return time;
+  }
+
+  window.roundToX = function (num, X) {
+    return +(Math.round(num + "e+" + X) + "e-" + X);
+  }
+</script>
+
+
+    <meta name="description" content="Finnhub - Free stock API for realtime market data, global company fundamentals, economic data, and alternative data.">
+<meta name="keywords" content="stock api,realtime,stock,equity,forex,crypto,fundamental data,economic data,alternative data">
+<meta property="og:title" content="Finnhub - Free realtime APIs for stock, forex and cryptocurrency.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://finnhub.io/">
+<meta property="og:image" content="https://static.finnhub.io/img/finnhub_2020-05-09_20_51/logo/logo-transparent-thumbnail.png">
+<meta property="og:description" content="Finnhub - Free APIs for realtime stock, forex, and cryptocurrency. Company fundamentals, Economic data, and Alternative data.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Finnhub - Free realtime APIs for stock, forex and cryptocurrency.">
+<meta name="twitter:image" content="https://static.finnhub.io/img/finnhub_2020-05-09_20_51/logo/logo-transparent-thumbnail.png">
+<meta name="twitter:description" content="Finnhub - Free APIs for realtime stock, forex, and cryptocurrency. Company fundamentals, Economic data, and Alternative data.">
+
+    <script src="./Get your free API key_files/client.min.js.download"></script>
+    <script src="./Get your free API key_files/hosted-fields.min.js.download"></script>
+
+    <title>Get your free API key</title>
+
+    <script src="./Get your free API key_files/typeahead.bundle.min.js.download"></script>
+    <script src="./Get your free API key_files/handlebars.js.download"></script>
+    <script type="text/javascript">
+      window.validUrl = function (myURL) {
+        var pattern = new RegExp('^(https?:\\/\\/)?' + 
+          '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.?)+[a-z]{2,}|' + 
+          '((\\d{1,3}\\.){3}\\d{1,3}))' + 
+          '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*' + 
+          '(\\?[;&amp;a-z\\d%_.~+=-]*)?' + 
+          '(\\#[-a-z\\d_]*)?$', 'i');
+        return pattern.test(myURL);
+      }
+
+      window.email = ""
+      window.paymentMethod = ""
+      window.stripeKey = "pk_live_DAbDiBgZqUUfqEdz2KdOOOSm00u9sQ0ycq"
+      window.recaptchaKey = "6LfzKMkUAAAAAJAQK37yAEKD8VG3kOcI7BaQNqgp"
+      window.apiKey = ""
+      window.sandboxApiKey = ""
+      window.userPlan = ""
+      window.webhook = ""
+      window.webhookSecret = ""
+      window.twoFaEnabled = ""
+      window.connectToken = ""
+      window.bulkDownloadData = [{"data":{"bbo":{"freq":"monthly","from":"1994-01","to":"2025-06"},"ohlc 1-minute":{"freq":"monthly","from":"1992-01","to":"2025-06"},"trade":{"freq":"monthly","from":"1992-01","to":"2025-06"}},"exchange":"us","name":"US"},{"data":{"bbo":{"freq":"monthly","from":"2021-01","to":"2025-06"},"ohlc 1-minute":{"freq":"monthly","from":"2021-01","to":"2025-06"},"trade":{"freq":"monthly","from":"2021-01","to":"2025-06"}},"exchange":"de","name":"Germany"},{"data":{"bbo":{"freq":"monthly","from":"2021-01","to":"2025-06"},"ohlc 1-minute":{"freq":"monthly","from":"2021-01","to":"2025-06"},"trade":{"freq":"monthly","from":"2021-01","to":"2025-06"}},"exchange":"l","name":"LSE"},{"data":{"bbo":{"freq":"monthly","from":"2021-01","to":"2025-06"},"ohlc 1-minute":{"freq":"monthly","from":"2021-01","to":"2025-06"},"trade":{"freq":"monthly","from":"2021-01","to":"2025-06"}},"exchange":"to","name":"TSX"},{"data":{"bbo":{"freq":"monthly","from":"2021-01","to":"2025-06"},"ohlc 1-minute":{"freq":"monthly","from":"2021-01","to":"2025-06"},"trade":{"freq":"monthly","from":"2021-01","to":"2025-06"}},"exchange":"euronext","name":"Euronext"}]
+      window.serverData = {"announcement":"Global Filings, Transcripts, and Presentations data are available on Finnhub API. Check out \u003ca href=\"/docs/api/earnings-call-transcripts-api\"\u003ehere\u003c/a\u003e","braintreeKey":"production_hcdjv6ys_rv4zs9hd9fwwk28f","exchanges":[{"displayName":"US exchanges","exchangeCode":["US"],"exchangeName":["US exchanges"],"rank":0},{"displayName":"Canadian Exchanges","exchangeCode":["V","TO","CN"],"exchangeName":["TSX VENTURE EXCHANGE - NEX","TORONTO STOCK EXCHANGE","CANADIAN NATIONAL STOCK EXCHANGE"],"rank":1},{"displayName":"LONDON STOCK EXCHANGE","exchangeCode":["L"],"exchangeName":["LONDON STOCK EXCHANGE"],"rank":2},{"displayName":"Indian exchanges","exchangeCode":["NS","BO"],"exchangeName":["NATIONAL STOCK EXCHANGE OF INDIA","BSE LTD"],"rank":4},{"displayName":"German exchanges","exchangeCode":["HM","F","DE","DU","BE","SG","MU"],"exchangeName":["HANSEATISCHE WERTPAPIERBOERSE HAMBURG","DEUTSCHE BOERSE AG","XETRA","BOERSE DUESSELDORF","BOERSE BERLIN","BOERSE STUTTGART","BOERSE MUENCHEN"],"rank":5}],"price":{"all-1":3000,"bond-1":99.99,"economic-1":50,"estimate-1":75,"estimate-2":200,"etf-1":500,"etf-2":1000,"fundamental-1":50,"fundamental-2":200,"marketdata-basic":49.99,"marketdata-eod":49.99,"marketdata-professional":199.99,"marketdata-standard":129.99}}
+        window.cardAdded =  null 
+          window.login =  false 
+            window.isSubscribe = null 
+
+    </script>
+<style type="text/css">html,body{height:100%}body{font-size:14px;font-family:Trebuchet MS, roboto, ubuntu, sans-serif}.grecaptcha-badge{display:none !important}.opaq8{opacity:0.8}.flex-vertical-center,.main-first-section,.register-div,.login-div{display:flex;flex-direction:column;justify-content:center}.hide-scrollbar::-webkit-scrollbar{display:none;-webkit-appearance:none}.hide-scrollbar{scrollbar-width:none}.text-green{color:#1db954}.text-red{color:#f45b5b}.text-blue{color:#00b3e3 !important}.text-brown{color:#b98b1d}.text-grey{color:#c8c8c8}@-moz-keyframes spin{100%{-webkit-transform:rotate(360deg);transform:rotate(360deg)}}@-webkit-keyframes spin{100%{-webkit-transform:rotate(360deg);transform:rotate(360deg)}}@keyframes spin{100%{-webkit-transform:rotate(360deg);transform:rotate(360deg)}}.tableFixHead{overflow:auto}.tableFixHead thead th{position:sticky;top:0;z-index:1;background:#363636;color:white}a{color:#1db954}a:hover{color:#189945}*:focus,input,.navbar-toggler:focus{outline:none}.text-my-primary{color:#1db954}.navbar{padding:0 1rem !important}.nav-primary{background-color:#2f2e2e}.nav-primary .nav-link,.navbar-dark .nav-link{color:white !important}.navbar-toggler{outline:none;border:none}.nav-primary li{padding-top:.4rem;padding-bottom:.4rem}.nav-item:hover,.navbar-toggler:hover,.dropdown-item:hover{background-color:#38383d;color:white}.dropdown-menu{font-size:unset;background:#2f2e2e}.dropdown-item{color:white}.dropdown-item.active{color:#1db954;background:#2f2e2e}@media (min-width: 768px){nav li.dropdown:hover>div.dropdown-menu{display:block}}.main-first-section{background-image:url("/static/img/webp/finnhub-wave.webp");background-color:#0a0a0a;background-repeat:no-repeat;background-size:cover;background-position:center right;position:relative;overflow:hidden;align-items:stretch;height:80vh;color:white}.buttons{display:flex;flex-wrap:wrap;justify-content:flex-start}.buttons a,.buttons button{margin-left:5px;margin-bottom:5px}.btn-black{background-color:#363636;border-color:transparent;padding:12px 20px;font-weight:600;color:white !important}.btn-black:hover{opacity:0.9}.btn-primary{background-color:#1db954;border-color:transparent;padding:12px 20px;font-weight:500;color:white}.btn-primary:hover{background-color:#189945;border-color:transparent}.btn-transparent{border-color:#1db954;background-color:transparent;padding:12px 20px;font-weight:500}.btn-transparent:hover{background-color:#1db954;color:white !important}.btn-side-by-side{display:inline-block;margin-right:5px}@media only screen and (max-width: 526px){.btn-side-by-side{margin-bottom:5px}}.primary-form{position:relative;display:flex;flex-direction:column;z-index:1;padding:30px 15px;box-shadow:0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);margin-left:auto;margin-right:auto;width:33vw;min-width:350px;background-color:white;min-height:400px}.primary-form input{padding:12px 7px;margin-top:12px;width:100%}.register-div{height:100vh;background-image:url("/static/img/webp/register-stock-exchange.webp");background-color:#0a0a0a;background-repeat:no-repeat;background-size:cover;background-position:center}.login-div{height:100vh;background-image:url("/static/img/webp/finnhub-data-center.webp");background-color:#0a0a0a;background-repeat:no-repeat;background-size:cover;background-position:center}.loader{position:absolute;left:45%;top:45%;border:5px solid #f3f3f3;border-top:5px solid #1db954;border-radius:50%;width:50px;height:50px;animation:spin 2s linear infinite;z-index:999}.main-about-section,.timeseries-section{padding:100px 15px;background:linear-gradient(135deg, #343434 0%, #010101 100%);color:white;position:relative}.hero{align-items:stretch;display:flex;flex-direction:column;justify-content:space-between;background-color:#222;color:#fff}.hero-body{flex-grow:1;flex-shrink:0}.tick{min-width:180px;border-right:1px solid #363636;padding:0 1rem;white-space:nowrap}.subtitle.is-6{font-size:.9rem;color:#ffffff}.subtitle{color:#6b6b6b;font-size:1rem;font-weight:400;line-height:1.25}.columns .column{display:inline-block;flex-basis:0;flex-grow:1;flex-shrink:1;padding:.75rem}.columns.is-mobile{display:flex}.columns{margin-top:.75rem;margin-bottom:.75rem}.price{color:#ffffff;position:relative}#ticker{flex-shrink:0;overflow:scroll}#ticker .tick{min-width:220px;border-right:1px solid #363636;padding:0 1rem;white-space:nowrap}.column{display:block;flex-basis:0;flex-grow:1;flex-shrink:1}.is-pulled-right{float:right !important}.icon{display:inline-flex;justify-content:center;height:1.5rem;width:1.5rem}.pricing-bg{min-height:80vh;background-image:url("/static/img/webp/finnhub-data-center.webp");clip-path:polygon(0 0, 100% 0, 100% calc(100% - 8vw), 0 100%);background-color:#0a0a0a;background-repeat:no-repeat;background-size:cover;background-position:center}.pricing-parent-div{display:flex;justify-content:center;flex-wrap:wrap;padding:100px 15px}.pricing-parent-div .pricing-div{margin-right:15px}.pricing-div{flex:1 1 0;padding:12px 15px;border:2px solid #363636;border-radius:5px;max-width:400px;min-height:350px;background:white}.pricing-div:hover{transform:scale(1.01, 1.01)}@media only screen and (max-width: 768px){.pricing-parent-div{display:flex;flex-direction:column;padding-left:0;padding-right:0}.pricing-div{flex:unset;margin-bottom:10px;max-width:unset}.pricing-parent-div .pricing-div{margin-right:0}}.pricing-number{color:#1db954;font-weight:bold;font-size:1.2rem}.form-control{background:#F4F7FB}.pricing-div ul{list-style-type:none;margin-left:0;padding-left:20px}.fa-check-circle{color:#1db954;margin-right:15px}.overlay{position:fixed;top:0;left:0;width:100%;height:100%;background-color:#2f2c2cab;z-index:99}.overlay-card-payment{border:2px solid #363636;border-radius:5px;background:whitesmoke;padding:20px;box-shadow:0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);min-width:350px;max-width:600px;z-index:10}.overlay-close{position:absolute;right:10px}.overlay-close:hover{opacity:0.8;cursor:pointer}.overlay-close:after{content:'x'}.image-3d-left{transform-style:preserve-3d;transition:transform 1s;backface-visibility:hidden;transform:perspective(350px) rotateY(-12deg);cursor:pointer}@media (max-width: 768px){.image-3d-left{transform:none}.hide-small-screen{display:none}}.image-3d-left:hover{transform:perspective(350px) rotateY(0deg)}.portfolio_image_area{padding:100px 15px}.portfolio_image_area .single_Portfolio{position:relative;margin-bottom:30px;overflow:hidden;-webkit-border-radius:5px;-moz-border-radius:5px;border-radius:5px}.portfolio_image_area .single_Portfolio .portfolio_thumb{height:350px;-webkit-border-radius:5px;-moz-border-radius:5px;border-radius:5px;overflow:hidden}@media (max-width: 767px){.portfolio_image_area .single_Portfolio .portfolio_thumb{height:auto}}.portfolio_image_area .single_Portfolio .portfolio_thumb img{width:100%;height:100%;-webkit-border-radius:5px;-moz-border-radius:5px;border-radius:5px}.portfolio_image_area .single_Portfolio .portfolio_hover{position:absolute;left:0;top:0;width:100%;height:100%;text-align:center;background:#fff;border:0;-webkit-transform:scale(0.9);-moz-transform:scale(0.9);-ms-transform:scale(0.9);transform:scale(0.9);-webkit-transition:0.5s;-moz-transition:0.5s;-o-transition:0.5s;transition:0.5s;opacity:0;overflow:hidden;-webkit-border-radius:5px;-moz-border-radius:5px;border-radius:5px}.portfolio_image_area .single_Portfolio .portfolio_hover .title{position:absolute;top:50%;left:0;right:0;text-align:center;-webkit-transform:translateY(-50%);-moz-transform:translateY(-50%);-ms-transform:translateY(-50%);transform:translateY(-50%)}.portfolio_image_area .single_Portfolio .portfolio_hover span{font-size:14px;color:#1db954;font-weight:400;font-family:"Roboto", sans-serif}.portfolio_image_area .single_Portfolio .portfolio_hover h3{color:#1F1F1F;font-size:24px;font-weight:700;margin-top:11px;margin-bottom:25px}.portfolio_image_area .single_Portfolio .portfolio_hover .boxed-btn3:hover{border:1px solid #1db954 !important;color:#1db954 !important;background:#fff !important}.portfolio_image_area .single_Portfolio:hover .portfolio_hover{-webkit-transform:scale(1);-moz-transform:scale(1);-ms-transform:scale(1);transform:scale(1);opacity:1}.how_we_work_area{position:relative}.how_we_work_area .work_info{padding:75px 0}@media only screen and (min-width: 768px){.how_we_work_area .work_info{padding:150px 0}.how_we_work_area::before{position:absolute;content:'';width:50%;right:0;top:0;height:100%;background-image:url(/static/img/webp/finnhub-data-center.webp);background-size:cover;background-position:center center;-webkit-border-radius:20px 0 0 20px;-moz-border-radius:20px 0 0 20px;border-radius:20px 0 0 20px}}.floating-box{background:#f9f7f7;box-shadow:0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19)}.floating-box:hover{box-shadow:0 10px 30px 0 rgba(0,0,0,0.2),0 12px 40px 0 rgba(0,0,0,0.19);transform:scale(1.01, 1.01)}.footer-default ul{list-style-type:none;margin:0;padding:0}.footer-default li{float:left}.fab{padding:15px;font-size:25px;width:25px;text-align:center;text-decoration:none;border-radius:50%;box-sizing:unset;margin-left:5px}.fab:hover{text-decoration:none;color:#1db954}.fa-facebook-f,.fa-linkedin-in,.fa-pinterest-p,.fa-twitter,.fa-github,.fa-youtube,.fa-reddit,.fa-github-square,.fa-kickstarter-k{background:#3b3c3e;color:white}.footer-icon{font-size:1.2rem;margin-right:10px}.footer-icon:hover{color:#1db954}.client-logo-div{display:flex;flex-wrap:nowrap;justify-content:space-between;overflow:auto;flex:1 0 10px;padding-left:30px;padding-right:30px}.client-logo-div img{max-height:100px;min-width:120px;margin-right:25px}@media only screen and (max-width: 526px){.client-logo-div{padding-left:5px;padding-right:5px}}.card-header::before{content:'';position:absolute;width:12px;height:2px;top:22px;right:15px;margin-left:-6px;margin-top:-1px;background:#aaadb1}.card-header::after{content:'';position:absolute;width:2px;height:12px;top:22px;right:20px;margin-left:-1px;margin-top:-6px;transition:transform .25s ease, opacity .25s ease 75ms;background:#aaadb1}.widget-embed-code pre{border-radius:10px;padding:1rem !important}.open-estimate-parent .tab-list{border-bottom:1px solid #ccc;padding-left:0}.open-estimate-parent .tab-list-item{display:inline-block;list-style:none;margin-bottom:-1px;padding:0.5rem 0.75rem}.open-estimate-parent .tab-list-active{background-color:white;border:solid #ccc;border-width:1px 1px 0 1px}.open-estimate-parent .open-estimate-info{padding-bottom:0.1px;display:flex;flex-wrap:wrap}.open-estimate-parent .price-text{padding-top:8px;font-size:1.2rem}.open-estimate-parent .open-estimate-tab-count{font-size:1.0rem}.open-estimate-parent .open-estimate-tab-header{padding-top:20px;padding-bottom:10px;margin-right:10px}.open-estimate-parent .open-estimate-sub{border:none !important}.open-estimate-parent .open-estimate-sub-tab{text-align:center;background:#fff;font-size:1.05rem;padding:10px 10px 15px 10px;font-weight:600;bottom:0px;color:black;box-shadow:inset 0 6px 0 0 #1db954;border-top:1px solid rgba(0,0,0,0.1);border-left:1px solid rgba(0,0,0,0.1);border-right:1px solid rgba(0,0,0,0.1);border-bottom:none !important}.open-estimate-parent .open-estimate-header{display:flex;flex-wrap:wrap;min-height:fit-content;border-top:1px solid rgba(0,0,0,0.1)}.open-estimate-parent .open-estimate-header-item.active{box-shadow:inset 0 6px 0 0 #1db954}.open-estimate-parent .open-estimate-header-item{padding:10px 15px 5px;color:black;font-size:1.05rem;border-right:1px solid #E9ECF0;cursor:pointer}.open-estimate-parent .open-estimate-header-item:hover{color:black;text-decoration:none;box-shadow:inset 0 6px 0 0 #1db954}.open-estimate-parent .open-estimate-table{border-right:1px solid rgba(0,0,0,0.1);margin:0 !important}.open-estimate-parent .open-estimate-table th{min-width:10%}.open-estimate-parent .open-estimate-table td{min-width:10%;max-width:20%;overflow:auto}.open-estimate-parent .open-estimate-table-row{box-shadow:inset 4px 0 0 0 #198DE6}.open-estimate-parent .open-estimate-table-row-wall-stwall-st{box-shadow:inset 4px 0 0 0 #666}.open-estimate-parent .open-estimate-table-row-actuals{box-shadow:inset 4px 0 0 0 #008002}.open-estimate-parent .open-estimate-table-row-points{box-shadow:inset 4px 0 0 0 #b056b2}.open-estimate-parent .open-estimate-table-row-index{font-weight:bold;box-shadow:inset 4px 0 0 0 #1db954;border-right:1px solid rgba(0,0,0,0.1)}.open-estimate-parent .open-estimate-table td input{width:70px;border-color:rgba(0,0,0,0.1)}.open-estimate-parent .open-estimate-sub-table-last{border-left:none !important}.open-estimate-parent .open-estimate-sub-table-left-header{border-bottom:none !important;border-top:none !important}.open-estimate-parent .open-estimate-sub-table-left-header-special{border-left:1px solid rgba(0,0,0,0.1);border-bottom:none !important;border-top:none !important}.open-estimate-parent .open-estimate-sub-table-left{border-left:1px solid rgba(0,0,0,0.1);border-bottom:1px solid rgba(0,0,0,0.1);border-top:1px solid rgba(0,0,0,0.1)}.open-estimate-parent .open-estimate-sub-table-edit{min-width:30px;border-color:rgba(0,0,0,0.1)}.open-estimate-parent .open-estimate-sub-table-edit.active{min-width:60px;border-color:#1db954}.open-estimate-parent .open-estimate-table-bottom{text-align:center;background:#fff;font-size:1.05rem;padding:10px 10px 15px 10px;font-weight:600;color:black;border-left:1px solid rgba(0,0,0,0.1)}.open-estimate-parent .open-estimate-table-bottom-button{text-align:center;background:#fff;font-size:1.05rem;padding:10px 10px 15px 10px;font-weight:600;color:black;border-bottom:1px solid rgba(0,0,0,0.1);border-left:1px solid rgba(0,0,0,0.1)}.open-estimate-parent .open-estimate-sub-table-button{border-radius:100px;color:#FFFFFF;background:#189945;border:none;outline:none;width:90%;padding-top:5px;padding-bottom:5px;text-align:center;transition:all 0.5s;cursor:pointer}.open-estimate-parent .open-estimate-sub-table-button:hover{border-radius:100px;color:#FFFFFF;background:#1db954;border:none;padding-top:5px;padding-bottom:5px}.open-estimate-parent .open-estimate-sub-table-button span{cursor:pointer;display:inline-block;position:relative;transition:0.5s}.open-estimate-parent .open-estimate-sub-table-button span:after{content:'\BB';opacity:0;font-size:2.0rem;position:absolute;top:-13.5px;right:0;transition:0.5s}.open-estimate-parent .open-estimate-sub-table-button:hover span{padding-right:25px}.open-estimate-parent .open-estimate-sub-table-button:hover span:after{opacity:1;right:0}.open-estimate-parent .open-estimate-sub-table-button:active{outline:none;border:none;background-color:#1db954;box-shadow:0 1px #666;transform:translateY(4px)}.open-estimate-parent .open-estimate-sub-table-button:focus{outline:0;border:none}.open-estimate-parent .historical-consensus-tabs-menu{float:left;border-right:1px solid #B1B1B1}.open-estimate-parent .historical-consensus-highcharts-container{padding-top:20px;height:620px}.open-estimate-parent .historical-consensus-figures{clear:both}.open-estimate-parent .historical-consensus-highcharts-figure,.open-estimate-parent .historical-consensus-highcharts-data-table table{min-width:310px;color:#ccc}.open-estimate-parent .historical-consensus-highcharts-data-table table{font-family:Verdana, sans-serif;border-collapse:collapse;border:1px solid #ebebeb;margin:10px auto;text-align:center;width:100%;max-width:500px}.open-estimate-parent .historical-consensus-highcharts-data-table caption{padding:1em 0;font-size:1.2em;color:#555}.open-estimate-parent .historical-consensus-highcharts-data-table th{font-weight:600;padding:0.5em}.open-estimate-parent .historical-consensus-highcharts-data-table td,.open-estimate-parent .historical-consensus-highcharts-data-table th,.open-estimate-parent .historical-consensus-highcharts-data-table caption{padding:0.5em}.open-estimate-parent .historical-consensus-highcharts-data-table thead tr,.open-estimate-parent .historical-consensus-highcharts-data-table tr:nth-child(even){background:#f8f8f8}.open-estimate-parent .historical-consensus-highcharts-data-table tr:hover{background:#f1f7ff}.open-estimate-parent .historical-consensus-div{padding-top:30px}.open-estimate-parent .historical-consensus-tables{border-left:1px solid rgba(0,0,0,0.1);border-bottom:1px solid rgba(0,0,0,0.1)}.open-estimate-parent .searchbox{width:100%;height:fit-content;border-radius:9px;border:1px solid rgba(0,0,0,0.1);align-items:center;display:flex;color:grey;cursor:pointer;padding:3px 6px;background:#fff}.open-estimate-parent .searchbox .fa-search{margin-right:2px;margin-left:2px;color:black}.open-estimate-parent .input-searchbox{border:none;border-radius:3px;height:32px;padding:8px 24px 8px 12px;width:100%;box-sizing:border-box;font-size:12px;line-height:1.33;background-color:#fff;color:#0e1318}.open-estimate-parent .twitter-typeahead{width:100%;min-width:200px}.open-estimate-parent .twitter-typeahead .tt-suggestion strong{color:#1db954}.open-estimate-parent .twitter-typeahead .typeahead,.open-estimate-parent .twitter-typeahead .tt-query,.open-estimate-parent .twitter-typeahead .tt-hint{height:32px;line-height:30px;outline:medium none;padding:8px 12px}.open-estimate-parent .twitter-typeahead .tt-query{box-shadow:0 1px 1px rgba(0,0,0,0.075) inset}.open-estimate-parent .twitter-typeahead .tt-menu{width:100%;box-shadow:0 0 50px #777777}.open-estimate-parent .twitter-typeahead .tt-menu .tt-suggestion:last-child{border-bottom-left-radius:10px;border-bottom-right-radius:10px}.open-estimate-parent .twitter-typeahead .tt-suggestion{background-color:white;border:none;line-height:24px;padding:10px 20px 5px 20px}.open-estimate-parent .twitter-typeahead .tt-suggestion.tt-cursor{background:#eff3f5;font-weight:bold;cursor:pointer}.open-estimate-parent .twitter-typeahead .suggestion-section{font-size:0.9rem}.open-estimate-parent .twitter-typeahead .suggestion-description{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:none;padding-left:5px;opacity:0.5;color:black}.open-estimate-parent .twitter-typeahead .tt-suggestion.tt-cursor .suggestion-description{display:block;font-weight:normal}.open-estimate-parent #follow-button{color:#1db954;font-weight:bold;font-family:"Helvetica";align-content:center;font-size:10pt;background-color:#ffffff;border:1px solid;border-color:#1db954;border-radius:3px;width:fit-content;height:fit-content;cursor:hand;display:inline-block;margin-top:3px;margin-left:6px}.open-estimate-parent #follow-button:hover{background:#1db954;color:#ffffff}.open-estimate-parent #follow-button.active{background:#1db954;color:#ffffff}.open-estimate-parent .list-group{overflow-y:hidden;height:100%;border-bottom:1px solid rgba(0,0,0,0.125);border-radius:0.25rem}.open-estimate-parent .list-group-scroll{overflow-y:scroll !important}.open-estimate-parent .list-group-item{height:fit-content;margin-bottom:-1.5px !important}.upcoming-reports{background:#2f2e2e;color:#FFFFFF}.upcoming-reports .nav-link:hover{color:#1db954 !important;text-decoration:underline}.upcoming-reports .ur-tooltip{max-width:440px;overflow-wrap:break-word;background:black}.upcoming-reports .tooltip-highlight{color:#1db954}.image-3d-right{transform-style:preserve-3d;transition:transform 1s;backface-visibility:hidden;transform:perspective(350px) rotateY(12deg);cursor:pointer}@media (max-width: 768px){.image-3d-right{transform:none}}.image-3d-right:hover{transform:perspective(350px) rotateY(0deg)}.image-3d-left{transform-style:preserve-3d;transition:transform 1s;backface-visibility:hidden;transform:perspective(350px) rotateY(-12deg);cursor:pointer}@media (max-width: 768px){.image-3d-left{transform:none}}.image-3d-left:hover{transform:perspective(350px) rotateY(0deg)}.braintree-form .hosted-field{height:50px;box-sizing:border-box;width:100%;padding:12px;display:inline-block;box-shadow:none;font-weight:600;font-size:14px;border-radius:6px;border:1px solid #dddddd;line-height:20px;background:#fcfcfc;margin-bottom:12px;background:linear-gradient(to right, white 50%, #fcfcfc 50%);background-size:200% 100%;background-position:right bottom;transition:all 300ms ease-in-out}.braintree-form .hosted-fields p{font-family:courier, monospace;text-transform:uppercase;font-size:14px;display:block;margin-bottom:6px}.braintree-form .braintree-hosted-fields-focused{border:1px solid #64d18a;border-radius:1px;background-position:left bottom}.braintree-form .braintree-hosted-fields-invalid{border:1px solid #ed574a}
+</style></head>
+<body>
+<div id="root"><section class="hero is-black is-small hide-scrollbar" id="ticker" style="overflow-y: hidden;"><div class="hero-body"><div class="container-fluid"><div class="columns is-mobile"><div class="column tick"><div class="subtitle is-6">BTC-USD<span class="price is-pulled-right"><strong>114095.69</strong></span><div class="text-red mt-1"><span class="icon float-left mt-1"><i class="fas fa-chevron-down"></i></span><span style="font-size: 1.2rem;">-0.02%</span> (-17.26)</div></div></div><div class="column tick"><div class="subtitle is-6">ETH-USD<span class="price is-pulled-right"><strong>3596.68</strong></span><div class="text-red mt-1"><span class="icon float-left mt-1"><i class="fas fa-chevron-down"></i></span><span style="font-size: 1.2rem;">-0.41%</span> (-14.89)</div></div></div><div class="column tick"><div class="subtitle is-6">EUR/USD<span class="price is-pulled-right"><strong>1.1632</strong></span><div class="text-green mt-1"><span class="icon float-left mt-1"><i class="fas fa-chevron-up"></i></span><span style="font-size: 1.2rem;">0.49%</span> (0.0057)</div></div></div><div class="column tick"><div class="subtitle is-6">GBP/USD<span class="price is-pulled-right"><strong>1.3325</strong></span><div class="text-green mt-1"><span class="icon float-left mt-1"><i class="fas fa-chevron-up"></i></span><span style="font-size: 1.2rem;">0.19%</span> (0.0026)</div></div></div><div class="column tick"><div class="subtitle is-6">AAPL<span class="price is-pulled-right"><strong>210.72</strong></span><div class="text-green mt-1"><span class="icon float-left mt-1"><i class="fas fa-chevron-up"></i></span><span style="font-size: 1.2rem;">3.62%</span> (7.37)</div></div></div><div class="column tick"><div class="subtitle is-6">MSFT<span class="price is-pulled-right"><strong>525.5</strong></span><div class="text-red mt-1"><span class="icon float-left mt-1"><i class="fas fa-chevron-down"></i></span><span style="font-size: 1.2rem;">-1.89%</span> (-10.14)</div></div></div><div class="column tick"><div class="subtitle is-6">AMZN<span class="price is-pulled-right"><strong>215.26</strong></span><div class="text-green mt-1"><span class="icon float-left mt-1"><i class="fas fa-chevron-up"></i></span><span style="font-size: 1.2rem;">1.71%</span> (3.61)</div></div></div></div></div></div></section><div class="alert alert-dismissible" role="alert" style="width: 100%; background-color: rgb(51, 51, 51); padding: 14px 14px 12px; color: white; margin-bottom: 0px;"><span>Global Filings, Transcripts, and Presentations data are available on Finnhub API. Check out <a href="https://finnhub.io/docs/api/earnings-call-transcripts-api">here</a></span></div><nav class="navbar navbar-expand-lg  navbar-dark nav-primary"><a class="navbar-brand" href="https://finnhub.io/" aria-label="Finnhub Stock API logo"><img src="./Get your free API key_files/finnhub-logo.webp" alt="Finnhub Stock API logo" width="50"></a><button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button><div class="collapse navbar-collapse" id="navbarNav"><ul class="navbar-nav"><li class="nav-item"><a href="https://finnhub.io/" class="nav-link" aria-label="Finnhub Home">Home</a></li><li class="nav-item"><a class="nav-link" href="https://finnhub.io/docs/api" target="_blank">Documentation</a></li><li class="nav-item dropdown"><a href="https://finnhub.io/register#" class="nav-link dropdown-toggle" id="navbarDropdown" data-toggle="dropdown" aria-expanded="true">Pricing</a><div class="dropdown-menu" aria-labelledby="navbarDropdown"><a class="dropdown-item" href="https://finnhub.io/pricing">All In One</a><a class="dropdown-item" href="https://finnhub.io/pricing-fundamental-data">Fundamental Data</a><a class="dropdown-item" href="https://finnhub.io/pricing-etf-indices">ETFs, Mutual Funds and Indices</a><a class="dropdown-item" href="https://finnhub.io/pricing-stock-estimates">Estimates</a><a href="https://finsheet.io/#pricing-section" target="_blank" class="dropdown-item">Excel &amp; Google Spreadsheet</a><a class="dropdown-item" href="https://finnhub.io/pricing-economic-data-api">Global Economic Data</a><div class="dropdown-divider"></div><a class="dropdown-item" href="https://finnhub.io/pricing-stock-api-market-data">US &amp; Global Market Data</a><a class="dropdown-item" href="https://finnhub.io/pricing-forex-api">Forex &amp; Commodities</a><a class="dropdown-item" href="https://finnhub.io/pricing-crypto-api">Crypto Data</a><a class="dropdown-item" href="https://finnhub.io/pricing-bonds-api-finra-trace">FINRA Trace - US Corporate Bonds</a><a class="dropdown-item" href="https://finnhub.io/tsx-end-of-day-level-1-data">TSX Level 1</a><a class="dropdown-item" href="https://finnhub.io/lse-delayed-level-1-data">LSE Delayed Level 1</a><a class="dropdown-item" href="https://finnhub.io/euronext-end-of-day-level-1-data">Euronext Level 1</a><a class="dropdown-item" href="https://finnhub.io/deutsche-borse-end-of-day-level-1-data">Deutsche Börse Level 1</a><div class="dropdown-divider"></div><a class="dropdown-item" href="https://finnhub.io/pricing-startups-and-enterprise">Startups &amp; Enterprise</a></div></li><li class="nav-item dropdown"><a href="https://finnhub.io/register#" class="nav-link dropdown-toggle" id="navbarDropdown2" data-toggle="dropdown" aria-expanded="true">Widget</a><div class="dropdown-menu" aria-labelledby="navbarDropdown2"><a class="dropdown-item" href="https://finnhub.io/widget/etf-holdings">ETF Holdings</a></div></li><li class="nav-item"><a href="https://finsheet.io/" class="nav-link" target="_blank"><img src="./Get your free API key_files/finsheet-logo.webp" height="20" class="mr-1">Excel &amp; Google Spreadsheet</a></li><li class="nav-item"><a class="nav-link" href="https://finnhub.io/filings-search-api"><img src="./Get your free API key_files/finnhub-logo.webp" height="20" class="mr-1">Filings Search API</a></li><li class="nav-item"><a class="nav-link" href="https://finnhub.io/finnhub-connect"><img src="./Get your free API key_files/finnhub-logo.webp" height="20" class="mr-1">Finnhub Connect</a></li></ul><ul class="navbar-nav ml-auto mr-5"><li class="nav-item"><a class="nav-link selected" href="https://finnhub.io/register" aria-current="page">Register</a></li><li class="nav-item"><a class="nav-link" href="https://finnhub.io/login">Login</a></li></ul></div></nav><div style="opacity: 1;"><div class="register-div"><div class="primary-form"><div><div class="text-center"><div><h2 class="text-my-primary">Welcome to Finnhub.io</h2></div><div>Already have an account? <a href="https://finnhub.io/login">Sign in</a>.</div></div><form><input type="text" placeholder="Name" value="S Shreya Atnoor" fdprocessedid="w7zcbi"><input type="text" placeholder="Email" value="shre" fdprocessedid="2824j"><input type="password" placeholder="Password" value="" fdprocessedid="27evxf"></form><div class="mt-3 font-italic"><div>By signing up with Finnhub, you understand that you have read and understand <a href="https://finnhub.io/terms-of-service" target="_blank">our terms of service</a>. You hereby confirm that you are either a qualified non-professional (personal use) under our terms or a commercial/professional user with our written approval.</div></div><a class="btn btn-transparent mt-3" style="width: 100%;">Sign Up</a></div></div></div></div></div>
+<script type="text/javascript" src="./Get your free API key_files/main.bundle.5c78f2dde81f3b5a16ea.js.download"></script><iframe name="__privateStripeMetricsController6140" frameborder="0" allowtransparency="true" scrolling="no" role="presentation" allow="payment *" src="./Get your free API key_files/m-outer-3437aaddcdf6922d623e172c2d6f9278.html" aria-hidden="true" tabindex="-1" style="border: none !important; margin: 0px !important; padding: 0px !important; width: 1px !important; min-width: 100% !important; overflow: hidden !important; display: block !important; visibility: hidden !important; position: fixed !important; height: 1px !important; pointer-events: none !important; user-select: none !important;"></iframe>
+<script src="./Get your free API key_files/api.js.download"></script>
+<div><div class="grecaptcha-badge" data-style="bottomright" style="width: 256px; height: 60px; position: fixed; visibility: hidden; display: block; transition: right 0.3s; bottom: 14px; right: -186px; box-shadow: gray 0px 0px 5px; border-radius: 2px; overflow: hidden;"><div class="grecaptcha-logo"><iframe title="reCAPTCHA" width="256" height="60" role="presentation" name="a-sjcu6gjqfebo" frameborder="0" scrolling="no" sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-top-navigation allow-modals allow-popups-to-escape-sandbox allow-storage-access-by-user-activation" src="./Get your free API key_files/anchor.html"></iframe></div><div class="grecaptcha-error"></div><textarea id="g-recaptcha-response-100000" name="g-recaptcha-response" class="g-recaptcha-response" style="width: 250px; height: 40px; border: 1px solid rgb(193, 193, 193); margin: 10px 25px; padding: 0px; resize: none; display: none;"></textarea></div><iframe style="display: none;" src="./Get your free API key_files/saved_resource(1).html"></iframe></div><span id="PING_IFRAME_FORM_DETECTION" style="display: none;"></span><div style="z-index: 2147483647 !important; padding: 0px !important; margin: 0px !important; border-radius: 8px !important; position: fixed !important; color-scheme: normal !important; box-shadow: rgba(0, 0, 0, 0.15) 0px 2px 4px 0px, rgba(0, 0, 0, 0.18) 0px 8px 15px 6px !important; border: 1px solid rgba(0, 0, 0, 0.9) !important; overflow: hidden !important; backdrop-filter: blur(20px) !important; background-color: rgba(35, 35, 35, 0.83) !important; top: 451px !important; left: 341px !important; opacity: 0 !important; visibility: hidden !important;"><template shadowrootmode="open"><iframe src="chrome-extension://pejdijmoenmkgeppbflobdenhhabjlaj/completion_list.html?username=shre&amp;colorScheme=&amp;screenX=0&amp;screenY=0&amp;effectiveWindowWidth=1017&amp;isDark=true" frameborder="0" style="width: 9001px !important; height: 100% !important; display: block !important;"></iframe></template></div></body></html>

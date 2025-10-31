@@ -9,26 +9,24 @@ from app.core.config import settings
 from app.logger import get_logger
 from app.middleware.request_logger import RequestLoggerMiddleware
 from app.tasks.scheduler import start_scheduler, shutdown_scheduler
-
+from contextlib import asynccontextmanager
+import logging
 # MongoDB connection management
 from app.db import connect_to_mongo, close_mongo_connection
 
-# Routers - Remove SQL-based ones, keep/update MongoDB ones
+# Routers
 from app.routers import (
     health, news, sentiment, signal,
     price, chart, debug_providers,
     analysis as analysis_router,
     recommender as ml_router,
-    
+    auth,
+    whatsapp_test,
+
     # MongoDB routers
     mongo_users, mongo_debug,
-    
-    # Enhanced debug
-    debug_enhanced,
+    mongo_portfolio_v2,
 )
-
-# NEW: Import the new MongoDB portfolio router
-from app.routers import mongo_portfolio_v2  # The new one we'll create
 
 log = get_logger(__name__)
 
@@ -104,23 +102,31 @@ async def lifespan(app: FastAPI):
 # Create FastAPI app with lifespan
 app = FastAPI(
     title="AI Investment Assistant",
-    version="2.0.0",  # Bumped version for MongoDB migration
+    version="2.0.0",
     lifespan=lifespan
 )
-
 # Middlewares
-app.add_middleware(RequestLoggerMiddleware)
+# Correct order - CORS MUST BE FIRST
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS or ["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:4000",  
+        "http://localhost:5173",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:4000",
+        "http://127.0.0.1:5173",
+        "*"  # Add this for development
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 # ========== ROUTERS ==========
-# Core functionality routers
+# Authentication
 app.include_router(auth.router, prefix=settings.API_PREFIX)
+
+# Core functionality routers
 app.include_router(health.router, prefix=settings.API_PREFIX)
 app.include_router(news.router, prefix=settings.API_PREFIX)
 app.include_router(sentiment.router, prefix=settings.API_PREFIX)
@@ -132,11 +138,13 @@ app.include_router(ml_router.router, prefix=settings.API_PREFIX)
 
 # MongoDB routers
 app.include_router(mongo_users.router, prefix=settings.API_PREFIX)
-app.include_router(mongo_portfolio_v2.router, prefix=settings.API_PREFIX)  # NEW MongoDB portfolio
+app.include_router(mongo_portfolio_v2.router, prefix=settings.API_PREFIX)
 app.include_router(mongo_debug.router, prefix=settings.API_PREFIX)
 
+# WhatsApp testing router
+app.include_router(whatsapp_test.router, prefix=settings.API_PREFIX)
+
 # Debug routers
-app.include_router(debug_enhanced.router, prefix=settings.API_PREFIX)
 app.include_router(debug_providers.router, prefix=settings.API_PREFIX)
 
 # ========== ROOT ENDPOINTS ==========
@@ -173,14 +181,14 @@ async def root():
                 "ai_recommendations": True
             },
             "api_endpoints": {
+                "auth": f"{settings.API_PREFIX}/auth/*",
                 "users": f"{settings.API_PREFIX}/users/*",
                 "portfolio": f"{settings.API_PREFIX}/portfolio/*",
-                "trades": f"{settings.API_PREFIX}/trades/*",
                 "analysis": f"{settings.API_PREFIX}/analysis/*",
                 "sentiment": f"{settings.API_PREFIX}/sentiment/*",
-                "recommendations": f"{settings.API_PREFIX}/recommendations/*",
-                "market_data": f"{settings.API_PREFIX}/market/*",
-                "debug": f"{settings.API_PREFIX}/debug/*"
+                "ml": f"{settings.API_PREFIX}/ml/*",
+                "market_data": f"{settings.API_PREFIX}/price, /history, /chart/*",
+                "debug": f"{settings.API_PREFIX}/_debug/*"
             }
         }
     except Exception as e:
@@ -189,7 +197,6 @@ async def root():
             "status": "running with errors",
             "error": str(e)
         }
-
 
 @app.get("/health")
 async def health_check():
@@ -222,7 +229,6 @@ async def health_check():
     return health_status
 
 
-# API info endpoint
 @app.get(f"{settings.API_PREFIX}/info")
 async def api_info():
     """Get API configuration and status information"""
@@ -230,7 +236,7 @@ async def api_info():
         "api_version": "2.0.0",
         "api_prefix": settings.API_PREFIX,
         "cors_origins": settings.CORS_ORIGINS,
-        "environment": settings.ENVIRONMENT or "development",
+        "environment": settings.ENV,
         "features_enabled": {
             "mongodb": True,
             "sentiment_analysis": True,

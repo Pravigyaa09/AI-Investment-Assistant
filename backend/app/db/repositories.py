@@ -40,11 +40,27 @@ class BaseRepository:
     
     async def update_one(self, id: str, update: dict) -> bool:
         """Update document by ID"""
-        update["updated_at"] = datetime.now(timezone.utc)
-        result = await self.collection.update_one(
-            {"_id": ObjectId(id)},
-            {"$set": update}
-        )
+        # Handle $unset operations separately
+        if "$unset" in update:
+            unset_fields = update.pop("$unset")
+            # Perform the update with both $set and $unset
+            update_doc = {}
+            if update:
+                update_doc["$set"] = {**update, "updated_at": datetime.now(timezone.utc)}
+            if unset_fields:
+                update_doc["$unset"] = unset_fields
+            
+            result = await self.collection.update_one(
+                {"_id": ObjectId(id)},
+                update_doc
+            )
+        else:
+            # Regular update with $set
+            update["updated_at"] = datetime.now(timezone.utc)
+            result = await self.collection.update_one(
+                {"_id": ObjectId(id)},
+                {"$set": update}
+            )
         return result.modified_count > 0
     
     async def delete_one(self, id: str) -> bool:
@@ -63,6 +79,49 @@ class UserRepository(BaseRepository):
         """Find user by email"""
         return await self.find_one({"email": email})
     
+    async def find_by_username(self, username: str) -> Optional[dict]:
+        """Find user by username"""
+        return await self.find_one({"username": username})
+    
+    async def update_verification_status(self, user_id: str, is_verified: bool) -> bool:
+        """Update user verification status"""
+        return await self.update_one(user_id, {"is_verified": is_verified})
+    
+    async def update_password(self, user_id: str, hashed_password: str) -> bool:
+        """Update user password"""
+        return await self.update_one(user_id, {"hashed_password": hashed_password})
+    
+    async def store_reset_token(self, user_id: str, token: str) -> bool:
+        """Store password reset token"""
+        return await self.update_one(user_id, {
+            "reset_token": token,
+            "reset_token_created": datetime.now(timezone.utc)
+        })
+    
+    async def get_reset_token(self, user_id: str) -> Optional[str]:
+        """Get stored reset token"""
+        user = await self.find_by_id(user_id)
+        return user.get("reset_token") if user else None
+    
+    async def clear_reset_token(self, user_id: str) -> bool:
+        """Clear reset token"""
+        return await self.update_one(user_id, {
+            "$unset": {"reset_token": "", "reset_token_created": ""}
+        })
+    
+    async def update_last_login(self, user_id: str) -> bool:
+        """Update last login timestamp"""
+        return await self.update_one(user_id, {"last_login": datetime.now(timezone.utc)})
+    
+    async def deactivate_user(self, user_id: str) -> bool:
+        """Deactivate user account"""
+        return await self.update_one(user_id, {"is_active": False})
+    
+    async def activate_user(self, user_id: str) -> bool:
+        """Activate user account"""
+        return await self.update_one(user_id, {"is_active": True})
+    
+    # Portfolio-related methods
     async def update_portfolio(self, user_id: str, portfolio: Portfolio) -> bool:
         """Update user's portfolio"""
         return await self.update_one(user_id, {"portfolio": portfolio.model_dump()})
@@ -111,7 +170,7 @@ class UserRepository(BaseRepository):
     
     async def update_cash_balance(self, user_id: str, amount: float) -> bool:
         """Update cash balance"""
-        return await self.collection.update_one(
+        result = await self.collection.update_one(
             {"_id": ObjectId(user_id)},
             {
                 "$set": {
@@ -119,7 +178,27 @@ class UserRepository(BaseRepository):
                     "portfolio.last_updated": datetime.now(timezone.utc)
                 }
             }
-        ).modified_count > 0
+        )
+        return result.modified_count > 0
+    
+    async def get_user_stats(self, user_id: str) -> Optional[dict]:
+        """Get user statistics"""
+        pipeline = [
+            {"$match": {"_id": ObjectId(user_id)}},
+            {"$project": {
+                "email": 1,
+                "username": 1,
+                "is_verified": 1,
+                "created_at": 1,
+                "last_login": 1,
+                "portfolio.total_value": 1,
+                "portfolio.cash_balance": 1,
+                "holdings_count": {"$size": {"$ifNull": ["$portfolio.holdings", []]}}
+            }}
+        ]
+        
+        result = await self.collection.aggregate(pipeline).to_list(1)
+        return result[0] if result else None
 
 
 class TradeRepository(BaseRepository):
@@ -138,6 +217,35 @@ class TradeRepository(BaseRepository):
             "user_id": ObjectId(user_id),
             "ticker": ticker
         })
+    
+    async def get_user_trade_stats(self, user_id: str) -> dict:
+        """Get trading statistics for a user"""
+        pipeline = [
+            {"$match": {"user_id": ObjectId(user_id)}},
+            {"$group": {
+                "_id": None,
+                "total_trades": {"$sum": 1},
+                "total_volume": {"$sum": "$total_value"},
+                "total_commission": {"$sum": "$commission"},
+                "buy_trades": {"$sum": {"$cond": [{"$eq": ["$side", "BUY"]}, 1, 0]}},
+                "sell_trades": {"$sum": {"$cond": [{"$eq": ["$side", "SELL"]}, 1, 0]}},
+                "avg_trade_size": {"$avg": "$total_value"}
+            }}
+        ]
+        
+        result = await self.collection.aggregate(pipeline).to_list(1)
+        if result:
+            stats = result[0]
+            stats.pop("_id")
+            return stats
+        return {
+            "total_trades": 0,
+            "total_volume": 0,
+            "total_commission": 0,
+            "buy_trades": 0,
+            "sell_trades": 0,
+            "avg_trade_size": 0
+        }
     
     async def execute_trade(self, trade: Trade, user_repo: UserRepository) -> Optional[str]:
         """Execute a trade and update portfolio"""
@@ -172,6 +280,8 @@ class TradeRepository(BaseRepository):
                 holding.avg_cost = new_total_cost / new_quantity
                 holding.last_price = trade.price
                 holding.current_value = new_quantity * trade.price
+                holding.pnl = holding.current_value - (holding.quantity * holding.avg_cost)
+                holding.pnl_percent = (holding.pnl / (holding.quantity * holding.avg_cost)) * 100 if holding.avg_cost > 0 else 0
                 holding.updated_at = datetime.now(timezone.utc)
             else:
                 # Create new holding
@@ -180,7 +290,9 @@ class TradeRepository(BaseRepository):
                     quantity=trade.quantity,
                     avg_cost=trade.price,
                     last_price=trade.price,
-                    current_value=trade.quantity * trade.price
+                    current_value=trade.quantity * trade.price,
+                    pnl=0,
+                    pnl_percent=0
                 )
                 portfolio.holdings.append(holding)
             
@@ -199,6 +311,8 @@ class TradeRepository(BaseRepository):
             else:
                 holding.current_value = holding.quantity * trade.price
                 holding.last_price = trade.price
+                holding.pnl = holding.current_value - (holding.quantity * holding.avg_cost)
+                holding.pnl_percent = (holding.pnl / (holding.quantity * holding.avg_cost)) * 100 if holding.avg_cost > 0 else 0
                 holding.updated_at = datetime.now(timezone.utc)
             
             # Add cash
@@ -242,6 +356,13 @@ class AIScoreRepository(BaseRepository):
             "user_id": ObjectId(user_id),
             "expires_at": {"$gt": datetime.now(timezone.utc)}
         })
+    
+    async def cleanup_expired(self) -> int:
+        """Remove expired AI scores"""
+        result = await self.collection.delete_many({
+            "expires_at": {"$lt": datetime.now(timezone.utc)}
+        })
+        return result.deleted_count
 
 
 class RecommendationRepository(BaseRepository):
@@ -258,6 +379,15 @@ class RecommendationRepository(BaseRepository):
             "valid_until": {"$gt": datetime.now(timezone.utc)}
         })
     
+    async def find_by_ticker(self, user_id: str, ticker: str) -> List[dict]:
+        """Find recommendations for specific ticker"""
+        return await self.find_many({
+            "user_id": ObjectId(user_id),
+            "ticker": ticker,
+            "is_active": True,
+            "valid_until": {"$gt": datetime.now(timezone.utc)}
+        })
+    
     async def deactivate_old(self, user_id: str, ticker: str) -> bool:
         """Deactivate old recommendations for a ticker"""
         result = await self.collection.update_many(
@@ -265,6 +395,13 @@ class RecommendationRepository(BaseRepository):
             {"$set": {"is_active": False}}
         )
         return result.modified_count > 0
+    
+    async def cleanup_expired(self) -> int:
+        """Remove expired recommendations"""
+        result = await self.collection.delete_many({
+            "valid_until": {"$lt": datetime.now(timezone.utc)}
+        })
+        return result.deleted_count
 
 
 class MarketDataRepository(BaseRepository):
@@ -277,6 +414,10 @@ class MarketDataRepository(BaseRepository):
         """Find market data by ticker"""
         return await self.find_one({"ticker": ticker})
     
+    async def find_multiple_tickers(self, tickers: List[str]) -> List[dict]:
+        """Find market data for multiple tickers"""
+        return await self.find_many({"ticker": {"$in": tickers}})
+    
     async def upsert(self, ticker: str, data: dict) -> bool:
         """Update or insert market data"""
         data["last_updated"] = datetime.now(timezone.utc)
@@ -286,3 +427,43 @@ class MarketDataRepository(BaseRepository):
             upsert=True
         )
         return result.modified_count > 0 or result.upserted_id is not None
+    
+    async def bulk_upsert(self, market_data_list: List[dict]) -> int:
+        """Bulk upsert market data"""
+        operations = []
+        for data in market_data_list:
+            ticker = data.get("ticker")
+            if ticker:
+                data["last_updated"] = datetime.now(timezone.utc)
+                operations.append({
+                    "updateOne": {
+                        "filter": {"ticker": ticker},
+                        "update": {"$set": data},
+                        "upsert": True
+                    }
+                })
+        
+        if operations:
+            result = await self.collection.bulk_write(operations)
+            return result.upserted_count + result.modified_count
+        return 0
+    
+    async def cleanup_old_data(self, days: int = 7) -> int:
+        """Remove market data older than specified days"""
+        cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
+        result = await self.collection.delete_many({
+            "last_updated": {"$lt": cutoff_date}
+        })
+        return result.deleted_count
+
+
+# Helper function to get all repositories
+def get_all_repositories(db: AsyncIOMotorDatabase) -> dict:
+    """Get all repository instances"""
+    return {
+        "user": UserRepository(db),
+        "trade": TradeRepository(db),
+        "ai_score": AIScoreRepository(db),
+        "recommendation": RecommendationRepository(db),
+        "market_data": MarketDataRepository(db)
+    }

@@ -6,25 +6,33 @@ from datetime import datetime, timezone
 from typing import Optional, List
 from pydantic import BaseModel, Field, ConfigDict
 from bson import ObjectId
-
-
+from typing import Any
+from bson import ObjectId
+from pydantic import GetCoreSchemaHandler, GetJsonSchemaHandler
+from pydantic_core import core_schema
 class PyObjectId(ObjectId):
-    """Custom ObjectId type for Pydantic"""
+    """MongoDB ObjectId type with Pydantic v2 support."""
     @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
-
-    @classmethod
-    def validate(cls, v):
-        if not ObjectId.is_valid(v):
+    def __get_pydantic_core_schema__(cls, _source: Any, handler: GetCoreSchemaHandler):
+        def validate(v: Any) -> ObjectId:
+            if isinstance(v, ObjectId):
+                return v
+            if isinstance(v, str) and ObjectId.is_valid(v):
+                return ObjectId(v)
             raise ValueError("Invalid ObjectId")
-        return ObjectId(v)
+        return core_schema.no_info_after_validator_function(
+            validate,
+            core_schema.union_schema([
+                core_schema.is_instance_schema(ObjectId),
+                core_schema.str_schema(),
+            ])
+        )
 
     @classmethod
-    def __get_pydantic_json_schema__(cls, field_schema):
-        field_schema.update(type="string")
-
-
+    def __get_pydantic_json_schema__(cls, core_schema_, handler: GetJsonSchemaHandler):
+        js = handler(core_schema_)
+        js.update(type="string", examples=["64f1a2b3c4d5e67890ab12cd"])
+        return js
 class MongoBaseModel(BaseModel):
     """Base model for MongoDB documents"""
     model_config = ConfigDict(
@@ -95,6 +103,14 @@ class Trade(MongoBaseModel):
 
 class AIScore(MongoBaseModel):
     """AI Score document schema"""
+    # Add model_config to disable protected namespace check for this model
+    model_config = ConfigDict(
+        populate_by_name=True,
+        arbitrary_types_allowed=True,
+        json_encoders={ObjectId: str},
+        protected_namespaces=()  # This disables the model_ namespace protection
+    )
+    
     user_id: PyObjectId = Field(..., index=True)
     ticker: str = Field(..., max_length=16, index=True)
     

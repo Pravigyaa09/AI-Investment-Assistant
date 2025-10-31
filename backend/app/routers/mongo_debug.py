@@ -23,4 +23,3 @@ async def dump_holdings(user_id: str = Query(...)):
         d["_id"] = str(d["_id"])
         docs.append(d)
     return {"count": len(docs), "docs": docs}
-

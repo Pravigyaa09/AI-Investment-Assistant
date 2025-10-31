@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.db.mongo import get_mongo_db
-from app.schemas.mongo_models import UserCreate
+from app.schemas import UserCreate
 
 router = APIRouter(prefix="/mongo/users", tags=["mongo"])
 

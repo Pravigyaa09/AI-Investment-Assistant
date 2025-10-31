@@ -56,6 +56,21 @@ class Settings(BaseSettings):
     # News analysis settings (optional additions)  
     MAX_NEWS_ARTICLES: int = 30                 # Max articles per ticker for analysis
     NEWS_LOOKBACK_HOURS: int = 24               # How far back to look for news
+    
+    # Authentication settings
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30       # Token expiration time in minutes
+
+    # SMTP Email settings
+    SMTP_HOST: Optional[str] = None              # SMTP server (e.g., smtp.gmail.com)
+    SMTP_PORT: int = 587                         # SMTP port (587 for TLS, 465 for SSL)
+    SMTP_USER: Optional[str] = None              # SMTP username/email
+    SMTP_PASSWORD: Optional[str] = None          # SMTP password/app password
+    SMTP_FROM_NAME: str = "AI Investment Assistant"  # From name in emails
+    FRONTEND_URL: str = "http://localhost:5173"  # Frontend URL for verification links
+
+    # Redis settings (optional - for token blacklisting)
+    REDIS_HOST: str = "localhost"
+    REDIS_PORT: int = 6379
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod

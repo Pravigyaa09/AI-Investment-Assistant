@@ -20,7 +20,8 @@ except Exception as e:
     log.warning("FinBERT dependencies not available (%s). Using keyword fallback.", e)
     _LIBS_OK = False
 
-_LABELS = ["negative", "neutral", "positive"]
+# ProsusAI/finbert label order: positive, negative, neutral
+_LABELS = ["positive", "negative", "neutral"]
 
 class TextPreprocessor:
     """Enhanced text preprocessing for financial content"""
@@ -116,7 +117,7 @@ class FinBERT:
                 "sentiment-analysis",
                 model=cls._model,
                 tokenizer=cls._tok,
-                return_all_scores=True
+                top_k=None  # Return all scores (replaces deprecated return_all_scores=True)
             )
             
             cls._ready = True
@@ -155,14 +156,15 @@ class FinBERT:
         
         probs = softmax(logits)
         top_idx = int(probs.argmax())
-        
+
+        # Map probabilities to correct labels (ProsusAI/finbert order: positive, negative, neutral)
         result = {
             "label": _LABELS[top_idx],
             "score": float(probs[top_idx]),
             "all_scores": {
-                "negative": float(probs[0]),
-                "neutral": float(probs[1]), 
-                "positive": float(probs[2])
+                "positive": float(probs[0]),  # Index 0 = positive
+                "negative": float(probs[1]),  # Index 1 = negative
+                "neutral": float(probs[2])    # Index 2 = neutral
             },
             "confidence": "high" if probs[top_idx] > 0.7 else "medium" if probs[top_idx] > 0.5 else "low"
         }

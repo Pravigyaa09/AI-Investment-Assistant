@@ -1,3 +1,4 @@
+#backend/app/services/signal_engine.py
 def rule_based_signal(counts: dict) -> tuple[str, float]:
     total = max(1, sum(counts.values()))
     pos = counts.get("positive", 0) / total
