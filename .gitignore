@@ -1,17 +1,21 @@
-# .gitignore
-# Environment files
+# ==========================
+# Global .gitignore for AI-Investment-Assistant
+# (Backend + Frontend)
+# ==========================
+
+# --- Environment Files ---
 .env
 .env.local
 .env.*.local
 *.env
 
-# Database files
+# --- Database Files ---
 *.db
 *.sqlite
 *.sqlite3
 sql_app.db
 
-# Python
+# --- Python Backend ---
 __pycache__/
 *.py[cod]
 *$py.class
@@ -21,32 +25,48 @@ venv/
 env/
 .venv/
 
-# IDE
+# --- Frontend (React) ---
+node_modules/
+dist/
+build/
+.npm/
+.yarn/
+.cache/
+*.tsbuildinfo
+package-lock.json
+yarn-error.log
+
+# --- IDE / Editors ---
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# OS
+# --- OS Files ---
 .DS_Store
 Thumbs.db
 
-# Logs
+# --- Logs ---
 *.log
 logs/
 
-# Secrets and credentials
+# --- Secrets & Credentials ---
 **/secrets/
 **/credentials/
 *.pem
 *.key
 *.cert
 
-# Migration temporary files
+# --- Migration / Temporary Files ---
 migration_map.json
 mongodb_init_info.json
 
-# Backup files
+# --- Backups ---
 *.backup
 *.bak
+
+# --- Coverage / Test Artifacts ---
+coverage/
+.pytest_cache/
+.cache/
