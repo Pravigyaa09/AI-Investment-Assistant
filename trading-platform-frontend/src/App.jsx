@@ -9,6 +9,9 @@ import VerifyEmail from './pages/VerifyEmail';
 import Dashboard from './pages/Dashboard';
 import Trading from './pages/Trading';
 import Portfolio from './pages/Portfolio';
+import Analysis from './pages/Analysis';
+import News from './pages/News';
+import StockAnalysis from './pages/StockAnalysis';
 
 function App() {
   return (
@@ -31,6 +34,9 @@ function App() {
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="trading" element={<Trading />} />
             <Route path="portfolio" element={<Portfolio />} />
+            <Route path="analysis" element={<Analysis />} />
+            <Route path="stock-analysis" element={<StockAnalysis />} />
+            <Route path="news" element={<News />} />
           </Route>
         </Routes>
       </Router>

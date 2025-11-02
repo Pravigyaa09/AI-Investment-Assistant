@@ -2,7 +2,7 @@
 from fastapi import APIRouter, HTTPException, Query
 from typing import List, Dict, Any
 
-from app.services.market_data import get_candles_rows_for_chart
+from app.services.market_data import get_candles_rows_for_chart, get_candles_ohlcv_for_chart
 
 router = APIRouter(tags=["chart"])
 
@@ -33,6 +33,47 @@ def chart_series(
         raise HTTPException(status_code=404, detail="no chart data")
 
     points = [{"date": d, "close": float(c)} for d, c in zip(dates, closes)]
+    return {
+        "ticker": ticker.upper().strip(),
+        "days": days,
+        "provider": provider,
+        "points": points,
+    }
+
+
+@router.get("/chart/ohlcv")
+def chart_ohlcv(
+    ticker: str = Query(..., min_length=1, max_length=15, description="Stock ticker, e.g., AAPL"),
+    days: int = Query(180, ge=1, le=1000, description="Number of calendar days back"),
+):
+    """
+    Return full OHLCV (Open, High, Low, Close, Volume) data for charting.
+    Response:
+    {
+      "ticker": "AAPL",
+      "days": 180,
+      "provider": "stooq|yahoo|synthetic",
+      "points": [
+         {
+           "date": "2025-05-01",
+           "open": 189.00,
+           "high": 191.50,
+           "low": 188.20,
+           "close": 189.23,
+           "volume": 52341000
+         },
+         ...
+      ]
+    }
+    """
+    try:
+        points, provider = get_candles_ohlcv_for_chart(ticker, days=days)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"failed to build OHLCV chart data: {e}")
+
+    if not points:
+        raise HTTPException(status_code=404, detail="no chart data available")
+
     return {
         "ticker": ticker.upper().strip(),
         "days": days,

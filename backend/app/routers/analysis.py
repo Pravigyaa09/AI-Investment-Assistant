@@ -49,6 +49,51 @@ def _daily_returns(closes: List[float]) -> List[float]:
             rets.append(p1/p0 - 1.0)
     return rets
 
+def _compute_rsi(closes: List[float], period: int = 14) -> float:
+    """Calculate RSI indicator"""
+    if len(closes) < period + 1:
+        return 50.0
+
+    gains = []
+    losses = []
+    for i in range(1, len(closes)):
+        diff = closes[i] - closes[i-1]
+        if diff > 0:
+            gains.append(diff)
+            losses.append(0)
+        else:
+            gains.append(0)
+            losses.append(abs(diff))
+
+    if len(gains) < period:
+        return 50.0
+
+    avg_gain = sum(gains[-period:]) / period
+    avg_loss = sum(losses[-period:]) / period
+
+    if avg_loss == 0:
+        return 100.0
+
+    rs = avg_gain / avg_loss
+    rsi = 100 - (100 / (1 + rs))
+    return round(rsi, 2)
+
+def _compute_sma(closes: List[float], period: int) -> float:
+    """Calculate Simple Moving Average"""
+    if len(closes) < period:
+        return closes[-1] if closes else 0.0
+    return sum(closes[-period:]) / period
+
+def _compute_period_return(closes: List[float], days: int) -> float:
+    """Calculate return over N days"""
+    if len(closes) < days + 1:
+        return 0.0
+    start_price = closes[-(days + 1)]
+    end_price = closes[-1]
+    if start_price <= 0:
+        return 0.0
+    return (end_price / start_price) - 1.0
+
 def _sentiment_index(items: List[dict]) -> float:
     vals: List[float] = []
     for s in items:
@@ -134,6 +179,17 @@ async def _analyze_one(
     trend = simple_trend_score(closes)
     vol_ann = compute_volatility(closes)
 
+    # Calculate technical indicators
+    rsi14 = _compute_rsi(closes, period=14)
+    sma20 = _compute_sma(closes, period=20)
+    sma50 = _compute_sma(closes, period=50)
+
+    # Calculate multi-period returns
+    ret_1 = _compute_period_return(closes, 1)
+    ret_5 = _compute_period_return(closes, 5)
+    ret_10 = _compute_period_return(closes, 10)
+    ret_20 = _compute_period_return(closes, 20)
+
     # News + FinBERT
     news = fetch_company_news(t, count=top_n_news)
     counts = {"positive": 0, "neutral": 0, "negative": 0}
@@ -157,14 +213,27 @@ async def _analyze_one(
     return {
         "ticker": t,
         "as_of": datetime.now(tz=timezone.utc).isoformat(),
+        "has_position": position is not None,
         "position": position,
-        "price": price,
-        "trend_score": round(trend, 3),
-        "volatility_ann": round(vol_ann, 4),
+        "current_price": price,
+        "trend_score": round(trend, 4),
+        "volatility": round(vol_ann, 4),
+        "rsi14": rsi14,
+        "sma20": round(sma20, 2),
+        "sma50": round(sma50, 2),
+        "daily_return": round(ret_1, 4),
+        "ret_5": round(ret_5, 4),
+        "ret_10": round(ret_10, 4),
+        "ret_20": round(ret_20, 4),
         "news_count": len(news),
+        "news_positive_count": counts["positive"],
+        "news_negative_count": counts["negative"],
+        "news_neutral_count": counts["neutral"],
+        "sentiment_index": est["sentiment_index"],
+        "expected_return": round(est["expected_return_pct"] / 100.0, 4),
+        "var_95": round(est["var_95_daily_pct"] / 100.0, 4),
         "sentiment_counts": counts,
         "sentiments": sentiments,
-        "estimated": est,
         "suggestion": {"action": action, "confidence": conf, "trend_hint": combo_hint},
         "note": "Estimates use recent drift + FinBERT sentiment; not financial advice.",
     }

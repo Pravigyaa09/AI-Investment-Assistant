@@ -18,7 +18,8 @@ const Trading = () => {
   const [marketData, setMarketData] = useState(null);
   const [priceLoading, setPriceLoading] = useState(false);
   const [tradeLoading, setTradeLoading] = useState(false);
-  
+  const [autoRefresh, setAutoRefresh] = useState(false);
+
   // Use custom hooks
   const { error, loading, handleAsync, clearError } = useErrorHandler();
   const { addToWatchlist, removeFromWatchlist, isInWatchlist } = useWatchlist();
@@ -34,6 +35,19 @@ const Trading = () => {
     }
   }, [ticker, isInWatchlist]);
 
+  // Auto-refresh price every 10 seconds when enabled
+  useEffect(() => {
+    let intervalId;
+    if (autoRefresh && ticker && marketData) {
+      intervalId = setInterval(() => {
+        fetchPrice(true); // Silent refresh
+      }, 10000); // 10 seconds
+    }
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [autoRefresh, ticker, marketData]);
+
   const loadPortfolio = async () => {
     await handleAsync(async () => {
       const data = await api.getPortfolio();
@@ -41,31 +55,34 @@ const Trading = () => {
     });
   };
 
-  const fetchPrice = async () => {
+  const fetchPrice = async (silent = false) => {
     if (!ticker) {
       setMessage({ type: 'error', text: 'Please enter a ticker symbol' });
       return;
     }
-    
-    setPriceLoading(true);
+
+    if (!silent) setPriceLoading(true);
     clearError();
-    
+
     try {
       const data = await api.getPrice(ticker);
       console.log('Price data:', data);
       setPrice(data.price?.toString() || '');
       setMarketData(data);
       setIsWatched(isInWatchlist(ticker));
-      setMessage(null);
+      if (!silent) setMessage(null);
     } catch (error) {
-      setMessage({ 
-        type: 'error', 
-        text: `Failed to fetch price for ${ticker}. Please check the ticker symbol.` 
-      });
+      if (!silent) {
+        setMessage({
+          type: 'error',
+          text: `Failed to fetch price for ${ticker}. Please check the ticker symbol.`
+        });
+      }
       setPrice('');
       setMarketData(null);
+      setAutoRefresh(false);
     } finally {
-      setPriceLoading(false);
+      if (!silent) setPriceLoading(false);
     }
   };
 
@@ -122,7 +139,8 @@ const Trading = () => {
       setPrice('');
       setMarketData(null);
       setIsWatched(false);
-      
+      setAutoRefresh(false);
+
       // Reload portfolio
       await loadPortfolio();
     } catch (error) {
@@ -155,11 +173,11 @@ const Trading = () => {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900">Trading</h1>
+        <h1 className="text-3xl font-bold text-gray-400">Trading</h1>
         <button
           onClick={loadPortfolio}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2 bg-dark-card border border-dark-border rounded-lg hover:bg-dark-hover disabled:opacity-50 text-gray-400"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           Refresh
@@ -175,13 +193,13 @@ const Trading = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="bg-dark-card rounded-xl border border-dark-border p-6">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg font-semibold text-gray-900">Execute Trade</h2>
+              <h2 className="text-lg font-semibold text-gray-400">Execute Trade</h2>
               {ticker && (
                 <button
                   onClick={toggleWatchlist}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-2 hover:bg-dark-hover rounded-lg transition-colors"
                   title={isWatched ? 'Remove from watchlist' : 'Add to watchlist'}
                 >
                   {isWatched ? (
@@ -195,8 +213,8 @@ const Trading = () => {
 
             {message && (
               <div className="mb-4">
-                <Alert 
-                  type={message.type} 
+                <Alert
+                  type={message.type}
                   message={message.text}
                   onClose={() => setMessage(null)}
                 />
@@ -206,7 +224,7 @@ const Trading = () => {
             <LoadingOverlay show={tradeLoading}>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-400 mb-2">
                     Ticker Symbol
                   </label>
                   <div className="flex gap-2">
@@ -214,7 +232,7 @@ const Trading = () => {
                       type="text"
                       value={ticker}
                       onChange={(e) => setTicker(e.target.value.toUpperCase())}
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="flex-1 px-4 py-2 bg-black border border-dark-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-600"
                       placeholder="AAPL"
                       maxLength={5}
                       required
@@ -223,7 +241,7 @@ const Trading = () => {
                       type="button"
                       onClick={fetchPrice}
                       disabled={priceLoading || !ticker}
-                      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      className="px-4 py-2 bg-dark-hover text-gray-400 rounded-lg hover:bg-dark-border disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
                       {priceLoading ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -235,34 +253,51 @@ const Trading = () => {
                 </div>
 
                 {marketData && (
-                  <div className="p-3 bg-blue-50 rounded-lg">
+                  <div className="p-3 bg-dark-hover border border-dark-border rounded-lg space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Current Market Price</span>
+                      <span className="text-sm text-gray-500">Current Market Price</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-lg font-semibold text-gray-900">
+                        <span className="text-lg font-semibold text-white">
                           {formatCurrency(marketData.price)}
                         </span>
                         {marketData.change && (
-                          <span className={`text-sm flex items-center ${marketData.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          <span className={`text-sm flex items-center ${marketData.change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                             {marketData.change >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                             {Math.abs(marketData.change).toFixed(2)}%
                           </span>
                         )}
                       </div>
                     </div>
+                    <div className="flex items-center justify-between">
+                      <label className="flex items-center text-xs text-gray-500">
+                        <input
+                          type="checkbox"
+                          checked={autoRefresh}
+                          onChange={(e) => setAutoRefresh(e.target.checked)}
+                          className="mr-2 rounded"
+                        />
+                        Auto-refresh (10s)
+                      </label>
+                      {autoRefresh && (
+                        <span className="text-xs text-green-500 flex items-center">
+                          <span className="w-1.5 h-1.5 bg-green-500 rounded-full mr-1 animate-pulse"></span>
+                          Live
+                        </span>
+                      )}
+                    </div>
                   </div>
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Side</label>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">Side</label>
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
                       onClick={() => setSide('BUY')}
                       className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                        side === 'BUY' 
-                          ? 'bg-green-500 text-white' 
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        side === 'BUY'
+                          ? 'bg-green-500 text-white'
+                          : 'bg-dark-hover text-gray-400 hover:bg-dark-border'
                       }`}
                     >
                       Buy
@@ -271,9 +306,9 @@ const Trading = () => {
                       type="button"
                       onClick={() => setSide('SELL')}
                       className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                        side === 'SELL' 
-                          ? 'bg-red-500 text-white' 
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        side === 'SELL'
+                          ? 'bg-red-500 text-white'
+                          : 'bg-dark-hover text-gray-400 hover:bg-dark-border'
                       }`}
                     >
                       Sell
@@ -283,12 +318,12 @@ const Trading = () => {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
+                    <label className="block text-sm font-medium text-gray-400 mb-2">Quantity</label>
                     <input
                       type="number"
                       value={quantity}
                       onChange={(e) => setQuantity(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2 bg-black border border-dark-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-600"
                       placeholder="100"
                       min="1"
                       step="1"
@@ -297,12 +332,12 @@ const Trading = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Price per Share</label>
+                    <label className="block text-sm font-medium text-gray-400 mb-2">Price per Share</label>
                     <input
                       type="number"
                       value={price}
                       onChange={(e) => setPrice(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2 bg-black border border-dark-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-600"
                       placeholder="150.00"
                       min="0.01"
                       step="0.01"
@@ -312,22 +347,22 @@ const Trading = () => {
                 </div>
 
                 {quantity && price && (
-                  <div className="p-4 bg-gray-50 rounded-lg space-y-2">
+                  <div className="p-4 bg-dark-hover border border-dark-border rounded-lg space-y-2">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Total Value</span>
-                      <span className="font-semibold">
+                      <span className="text-gray-500">Total Value</span>
+                      <span className="font-semibold text-white">
                         {formatCurrency(totalValue)}
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Commission (0.1%)</span>
-                      <span className="text-gray-600">
+                      <span className="text-gray-500">Commission (0.1%)</span>
+                      <span className="text-gray-500">
                         {formatCurrency(commission)}
                       </span>
                     </div>
-                    <div className="pt-2 border-t flex justify-between">
-                      <span className="text-gray-700 font-medium">Total Cost</span>
-                      <span className="font-bold text-lg">
+                    <div className="pt-2 border-t border-dark-border flex justify-between">
+                      <span className="text-gray-400 font-medium">Total Cost</span>
+                      <span className="font-bold text-lg text-white">
                         {formatCurrency(side === 'BUY' ? totalValue + commission : totalValue - commission)}
                       </span>
                     </div>
@@ -355,25 +390,25 @@ const Trading = () => {
         </div>
 
         <div className="space-y-4">
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Summary</h3>
+          <div className="bg-dark-card rounded-xl border border-dark-border p-6">
+            <h3 className="text-lg font-semibold text-gray-400 mb-4">Account Summary</h3>
             <div className="space-y-4">
               <div>
-                <p className="text-sm text-gray-600">Available Cash</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-sm text-gray-500">Available Cash</p>
+                <p className="text-2xl font-bold text-white">
                   {portfolio ? formatCurrency(portfolio.cash_balance) : '-'}
                 </p>
               </div>
-              <div className="pt-3 border-t">
-                <p className="text-sm text-gray-600">Portfolio Value</p>
-                <p className="text-xl font-semibold text-gray-900">
+              <div className="pt-3 border-t border-dark-border">
+                <p className="text-sm text-gray-500">Portfolio Value</p>
+                <p className="text-xl font-semibold text-white">
                   {portfolio ? formatCurrency(portfolio.total_value) : '-'}
                 </p>
               </div>
-              <div className="pt-3 border-t">
-                <p className="text-sm text-gray-600">Total P&L</p>
+              <div className="pt-3 border-t border-dark-border">
+                <p className="text-sm text-gray-500">Total P&L</p>
                 <p className={`text-xl font-semibold ${
-                  portfolio?.total_pnl >= 0 ? 'text-green-600' : 'text-red-600'
+                  portfolio?.total_pnl >= 0 ? 'text-green-500' : 'text-red-500'
                 }`}>
                   {portfolio ? formatCurrency(portfolio.total_pnl || 0) : '-'}
                 </p>
@@ -382,9 +417,9 @@ const Trading = () => {
           </div>
 
           {/* Quick Tips */}
-          <div className="bg-blue-50 rounded-xl p-4">
-            <h4 className="font-medium text-blue-900 mb-2">Trading Tips</h4>
-            <ul className="text-sm text-blue-700 space-y-1">
+          <div className="bg-dark-hover border border-dark-border rounded-xl p-4">
+            <h4 className="font-medium text-gray-400 mb-2">Trading Tips</h4>
+            <ul className="text-sm text-gray-500 space-y-1">
               <li>• Click the star to add stocks to your watchlist</li>
               <li>• Check market price before placing orders</li>
               <li>• Commission is 0.1% per trade</li>

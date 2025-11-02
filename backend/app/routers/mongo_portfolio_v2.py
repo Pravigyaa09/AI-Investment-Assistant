@@ -127,20 +127,54 @@ class PerformanceMetrics(BaseModel):
 
 # ========== PORTFOLIO ENDPOINTS ==========
 
+async def _update_portfolio_prices(portfolio: Portfolio) -> Portfolio:
+    """Helper function to update portfolio holdings with current market prices"""
+    from app.services.market_data import get_quote
+
+    for holding in portfolio.holdings:
+        try:
+            # Fetch current price
+            current_price = get_quote(holding.ticker)
+            if current_price and current_price > 0:
+                holding.last_price = current_price
+                holding.current_value = holding.quantity * current_price
+                # Recalculate P&L
+                cost_basis = holding.quantity * holding.avg_cost
+                holding.pnl = holding.current_value - cost_basis
+                holding.pnl_percent = (holding.pnl / cost_basis * 100) if cost_basis > 0 else 0
+                holding.updated_at = datetime.now(timezone.utc)
+        except Exception as e:
+            log.warning(f"Failed to update price for {holding.ticker}: {e}")
+            # Keep existing price if fetch fails
+            pass
+
+    # Update total portfolio value
+    portfolio.total_value = portfolio.cash_balance + sum(h.current_value for h in portfolio.holdings)
+    portfolio.last_updated = datetime.now(timezone.utc)
+
+    return portfolio
+
 @router.get("", response_model=PortfolioResponse)
 async def get_portfolio(
+    refresh_prices: bool = Query(False, description="Refresh current market prices"),
     current_user: dict = Depends(get_current_user_mongo)
 ):
     """Get current user's portfolio with detailed metrics"""
     try:
         user_repo: UserRepository = get_repository(UserRepository)
-        
+
         portfolio = await user_repo.get_portfolio(str(current_user["_id"]))
         if not portfolio:
             # Initialize empty portfolio for new users
             portfolio = Portfolio()
             await user_repo.update_portfolio(str(current_user["_id"]), portfolio)
-        
+
+        # Optionally refresh prices
+        if refresh_prices and portfolio.holdings:
+            portfolio = await _update_portfolio_prices(portfolio)
+            # Save updated portfolio
+            await user_repo.update_portfolio(str(current_user["_id"]), portfolio)
+
         # Calculate metrics
         total_invested = sum(h.quantity * h.avg_cost for h in portfolio.holdings)
         total_current = sum(h.current_value for h in portfolio.holdings)
