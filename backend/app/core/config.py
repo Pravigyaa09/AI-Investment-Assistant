@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///./dev.db"
     FINBERT_MODEL: str = "ProsusAI/finbert"
     FINNHUB_API_KEY: Optional[str] = None
+    FINNHUB_WEBHOOK_SECRET: Optional[str] = None
     LOG_LEVEL: str = "INFO"
     HOST: str = "0.0.0.0"
     PORT: int = 8000
@@ -35,7 +36,7 @@ class Settings(BaseSettings):
     SCHEDULE_MINUTES: int = 30
     DISABLE_CANDLES: int = 0
     PREFERRED_PROVIDER: str = "auto"
-    CACHE_TTL_SECONDS: int = 600
+    CACHE_TTL_SECONDS: int = 30  # Cache price data for 30 seconds (was 600)
     TWILIO_ACCOUNT_SID: Optional[str] = None
     TWILIO_AUTH_TOKEN: Optional[str] = None
     TWILIO_WHATSAPP_FROM: Optional[str] = None

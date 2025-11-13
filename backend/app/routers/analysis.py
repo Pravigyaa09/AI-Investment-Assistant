@@ -131,13 +131,68 @@ def _estimate_return_and_risk(closes: List[float], sentiments: List[dict], horiz
         "sentiment_index": round(s_idx, 4),
     }
 
-def _rule_signal(pos: int, neg: int, neu: int) -> tuple[str, float]:
-    total = max(1, pos + neg + neu)
-    p = pos / total
-    n = neg / total
-    if p >= 0.70: return "Buy", round(p, 3)
-    if n >= 0.60: return "Sell", round(n, 3)
-    return "Hold", round(1 - abs(p - n), 3)
+def _rule_signal(sentiment_index: float, has_position: bool = False, sentiment_strength: float = 0.5) -> tuple[str, float]:
+    """
+    Generate trade signal based on sentiment index and clarity.
+
+    Sentiment Index ranges from -1.0 (very negative) to +1.0 (very positive).
+    Sentiment Strength is the ratio of articles with clear sentiment vs neutral.
+
+    This approach prevents weak "Buy/Sell" signals when sentiment is unclear.
+    For example: 2 positive + 5 neutral + 1 negative = weak signal even if slightly positive.
+
+    Thresholds:
+      - sentiment_index > +0.30 AND strength ≥ 0.4 → Strong positive
+      - sentiment_index < -0.30 AND strength ≥ 0.4 → Strong negative
+      - Otherwise → Neutral/mixed (recommend Hold)
+
+    If user owns stock (has_position=True):
+      - Strong positive → Hold (keep it)
+      - Strong negative → Sell (get rid of it)
+      - Weak/Neutral → Hold (monitor)
+
+    If user doesn't own stock (has_position=False):
+      - Strong positive → Buy (acquire it)
+      - Strong negative → Don't Buy (avoid it)
+      - Weak/Neutral → Hold (wait for clarity)
+
+    Args:
+        sentiment_index: Weighted sentiment score from -1.0 to +1.0
+        has_position: Whether user owns the stock
+        sentiment_strength: Ratio of sentiment articles vs total (0.0-1.0)
+
+    Returns:
+        tuple of (action, confidence) where confidence = abs(sentiment_index) * strength
+    """
+    # Thresholds for strong signals
+    POSITIVE_THRESHOLD = 0.30
+    NEGATIVE_THRESHOLD = -0.30
+    MIN_CLARITY = 0.40  # Need at least 40% of articles to have clear sentiment
+
+    # Confidence = sentiment strength * clarity
+    # This gives higher confidence when both sentiment is strong AND articles are clear
+    confidence = abs(sentiment_index) * min(1.0, sentiment_strength)
+
+    # Only consider signals "strong" if clarity is sufficient
+    positive_signal = (sentiment_index > POSITIVE_THRESHOLD and sentiment_strength >= MIN_CLARITY)
+    negative_signal = (sentiment_index < NEGATIVE_THRESHOLD and sentiment_strength >= MIN_CLARITY)
+
+    if has_position:
+        # User owns the stock
+        if positive_signal:
+            return "Hold", round(confidence, 3)  # Keep it, stock is doing well
+        elif negative_signal:
+            return "Sell", round(confidence, 3)  # Get rid of it, stock is struggling
+        else:
+            return "Hold", round(confidence, 3)  # Neutral/unclear → Hold, confidence reflects mixed sentiment
+    else:
+        # User doesn't own the stock
+        if positive_signal:
+            return "Buy", round(confidence, 3)  # Buy it, stock is doing well
+        elif negative_signal:
+            return "Don't Buy", round(confidence, 3)  # Don't buy, stock is struggling
+        else:
+            return "Hold", round(confidence, 3)  # Neutral/unclear → Hold, confidence reflects mixed sentiment
 
 async def _analyze_one(
     ticker: str,
@@ -207,7 +262,20 @@ async def _analyze_one(
         })
 
     est = _estimate_return_and_risk(closes, sentiments, horizon_days=horizon_days)
-    action, conf = _rule_signal(counts["positive"], counts["negative"], counts["neutral"])
+
+    # Calculate sentiment_strength (clarity) = ratio of non-neutral articles
+    sentiment_strength = 0.5  # Default if no articles
+    if len(sentiments) > 0:
+        non_neutral = counts.get("positive", 0) + counts.get("negative", 0)
+        sentiment_strength = non_neutral / len(sentiments)  # Ratio of clear sentiment vs neutral
+
+    # Use sentiment_index (more sophisticated than just counting articles)
+    # Also consider clarity (sentiment_strength) to avoid weak mixed signals
+    action, conf = _rule_signal(
+        est["sentiment_index"],
+        has_position=position is not None,
+        sentiment_strength=sentiment_strength
+    )
     combo_hint = "uptrend" if trend > 0 else ("downtrend" if trend < 0 else "flat")
 
     return {

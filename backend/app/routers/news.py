@@ -4,13 +4,77 @@ from typing import List, Optional, Dict, Any
 from app.utils.validators import validate_ticker
 from app.services.finnhub_client import fetch_company_news
 from app.services.stock_categories import get_all_categories, get_category_tickers
-from app.services.recommender_fast import get_recommendations_batch
 from app.api.deps import get_current_user_mongo
 from app.db import get_repository, UserRepository
 from app.logger import get_logger
+from app.ml.infer import recommend as ml_recommend
 
 log = get_logger(__name__)
 router = APIRouter(prefix="/news", tags=["news"])
+
+
+async def _get_ml_recommendations_batch(user_id: str, tickers: List[str], owned_tickers: set) -> Dict[str, Dict[str, Any]]:
+    """
+    Get hybrid ML + Sentiment recommendations for multiple tickers in parallel.
+
+    Args:
+        user_id: User ID
+        tickers: List of tickers to analyze
+        owned_tickers: Set of tickers the user owns
+
+    Returns:
+        Dict mapping ticker to recommendation with action, confidence, sentiment_analysis, etc.
+    """
+    import asyncio
+
+    results = {}
+
+    # Create tasks for all tickers in parallel using asyncio.gather
+    tasks = []
+    task_map = {}  # Map task to ticker for result correlation
+    for ticker in tickers:
+        has_position = ticker in owned_tickers
+        # Use ml_recommend which now includes sentiment analysis and position-awareness
+        # Run in thread pool to avoid blocking
+        task = asyncio.to_thread(
+            ml_recommend,
+            ticker,
+            horizon_days=21,
+            user_id=user_id,
+            has_position=has_position
+        )
+        tasks.append(task)
+        task_map[id(task)] = ticker
+
+    # Wait for ALL tasks in parallel (not sequentially!)
+    completed = await asyncio.gather(*tasks, return_exceptions=True)
+
+    # Process results in order
+    for task, rec in zip(tasks, completed):
+        ticker = task_map[id(task)]
+        try:
+            if isinstance(rec, Exception):
+                raise rec
+            results[ticker] = rec
+        except Exception as e:
+            log.warning(f"ML recommendation failed for {ticker}: {e}")
+            # Fallback to simple recommendation
+            results[ticker] = {
+                "action": "Hold",
+                "confidence": 0.5,
+                "sentiment_analysis": {
+                    "sentiment_index": 0.0,
+                    "sentiment_strength": 0.0,
+                    "positive": 0,
+                    "negative": 0,
+                    "neutral": 0
+                },
+                "has_position": ticker in owned_tickers,
+                "position_aware": True,
+                "recommendation_type": "hybrid"
+            }
+
+    return results
 
 @router.get("")
 def get_news(ticker: str = Query("AAPL", min_length=1, max_length=30)):
@@ -108,9 +172,9 @@ async def get_category_news(
         if portfolio and portfolio.holdings:
             owned_tickers = {h.ticker for h in portfolio.holdings}
 
-        # Get recommendations for all tickers in parallel (FAST!)
+        # Get recommendations using hybrid ML + Sentiment system
         limited_tickers = tickers[:15]  # Limit to 15 tickers per category
-        recommendations = await get_recommendations_batch(
+        recommendations = await _get_ml_recommendations_batch(
             str(current_user["_id"]),
             limited_tickers,
             owned_tickers
@@ -122,12 +186,20 @@ async def get_category_news(
             try:
                 ticker_articles = fetch_company_news(ticker, count=5)
 
-                # Get pre-computed recommendation from batch
+                # Get recommendation from hybrid ML + Sentiment system
                 rec_data = recommendations.get(ticker, {
-                    "action": "HOLD",
+                    "action": "Hold",
                     "confidence": 0.5,
-                    "reasons": ["Analysis unavailable"],
-                    "owned": ticker in owned_tickers
+                    "sentiment_analysis": {
+                        "sentiment_index": 0.0,
+                        "sentiment_strength": 0.0,
+                        "positive": 0,
+                        "negative": 0,
+                        "neutral": 0
+                    },
+                    "has_position": ticker in owned_tickers,
+                    "position_aware": True,
+                    "recommendation_type": "hybrid"
                 })
 
                 # Attach recommendation to each article
@@ -176,8 +248,8 @@ async def get_personalized_news_with_recommendations(
             # No holdings, return general market news
             general_tickers = ["SPY", "QQQ", "AAPL"]
 
-            # Get recommendations in batch (FAST!)
-            recommendations = await get_recommendations_batch(
+            # Get recommendations using hybrid ML + Sentiment system
+            recommendations = await _get_ml_recommendations_batch(
                 str(current_user["_id"]),
                 general_tickers,
                 set()  # No owned tickers
@@ -188,10 +260,18 @@ async def get_personalized_news_with_recommendations(
                 try:
                     ticker_articles = fetch_company_news(ticker, count=5)
                     rec_data = recommendations.get(ticker, {
-                        "action": "HOLD",
+                        "action": "Hold",
                         "confidence": 0.5,
-                        "reasons": ["Analysis unavailable"],
-                        "owned": False
+                        "sentiment_analysis": {
+                            "sentiment_index": 0.0,
+                            "sentiment_strength": 0.0,
+                            "positive": 0,
+                            "negative": 0,
+                            "neutral": 0
+                        },
+                        "has_position": False,
+                        "position_aware": True,
+                        "recommendation_type": "hybrid"
                     })
 
                     for article in ticker_articles:
@@ -211,8 +291,8 @@ async def get_personalized_news_with_recommendations(
         holdings_tickers = [h.ticker for h in portfolio.holdings]
         owned_tickers = set(holdings_tickers)
 
-        # Get recommendations for all holdings in batch (FAST!)
-        recommendations = await get_recommendations_batch(
+        # Get recommendations using hybrid ML + Sentiment system
+        recommendations = await _get_ml_recommendations_batch(
             str(current_user["_id"]),
             holdings_tickers,
             owned_tickers
@@ -224,10 +304,18 @@ async def get_personalized_news_with_recommendations(
                 ticker_articles = fetch_company_news(ticker, count=10)
 
                 rec_data = recommendations.get(ticker, {
-                    "action": "HOLD",
+                    "action": "Hold",
                     "confidence": 0.5,
-                    "reasons": ["Analysis unavailable"],
-                    "owned": ticker in owned_tickers
+                    "sentiment_analysis": {
+                        "sentiment_index": 0.0,
+                        "sentiment_strength": 0.0,
+                        "positive": 0,
+                        "negative": 0,
+                        "neutral": 0
+                    },
+                    "has_position": ticker in owned_tickers,
+                    "position_aware": True,
+                    "recommendation_type": "hybrid"
                 })
 
                 for article in ticker_articles:

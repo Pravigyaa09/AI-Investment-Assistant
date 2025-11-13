@@ -22,6 +22,7 @@ from app.routers import (
     recommender as ml_router,
     auth,
     whatsapp_test,
+    webhook,
 
     # MongoDB routers
     mongo_users, mongo_debug,
@@ -135,6 +136,7 @@ app.include_router(price.router, prefix=settings.API_PREFIX)
 app.include_router(chart.router, prefix=settings.API_PREFIX)
 app.include_router(analysis_router.router, prefix=settings.API_PREFIX)
 app.include_router(ml_router.router, prefix=settings.API_PREFIX)
+app.include_router(webhook.router, prefix=settings.API_PREFIX)
 
 # MongoDB routers
 app.include_router(mongo_users.router, prefix=settings.API_PREFIX)

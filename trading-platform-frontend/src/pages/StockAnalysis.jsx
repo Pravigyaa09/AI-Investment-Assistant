@@ -43,17 +43,21 @@ const StockAnalysis = () => {
   const getSuggestionColor = (suggestion) => {
     if (!suggestion || typeof suggestion !== 'string') return 'gray';
     const lower = suggestion.toLowerCase();
-    if (lower.includes('buy')) return 'green';
-    if (lower.includes('sell')) return 'red';
-    return 'yellow';
+    if (lower === 'buy') return 'green';
+    if (lower === 'sell') return 'red';
+    if (lower === "don't buy" || lower === 'dont buy') return 'red';
+    if (lower === 'hold') return 'yellow';
+    return 'gray';
   };
 
   const getSuggestionIcon = (suggestion) => {
     if (!suggestion || typeof suggestion !== 'string') return AlertCircle;
     const lower = suggestion.toLowerCase();
-    if (lower.includes('buy')) return TrendingUp;
-    if (lower.includes('sell')) return TrendingDown;
-    return Activity;
+    if (lower === 'buy') return TrendingUp;
+    if (lower === 'sell') return TrendingDown;
+    if (lower === "don't buy" || lower === 'dont buy') return AlertCircle;
+    if (lower === 'hold') return Activity;
+    return AlertCircle;
   };
 
   const formatPercent = (value) => {

@@ -133,6 +133,63 @@ class ApiService {
     const tickersParam = tickers.join(',');
     return this.request(`/stocks/analysis?tickers=${tickersParam}&days=${days}&top_n_news=${topNNews}&horizon_days=${horizonDays}`);
   }
+
+  // ============================================================================
+  // ML-Based Recommendations
+  // ============================================================================
+
+  async getMLRecommendation(ticker, horizonDays = 21) {
+    return this.request(`/ml/recommend?ticker=${ticker}&horizon_days=${horizonDays}`);
+  }
+
+  async getMLRecommendations(tickers, horizonDays = 21) {
+    const tickersParam = Array.isArray(tickers) ? tickers.join(',') : tickers;
+    return this.request(`/ml/recommend?tickers=${tickersParam}&horizon_days=${horizonDays}`);
+  }
+
+  async getMLRecommendationsBatch(tickers, horizonDays = 21) {
+    return this.request('/ml/recommend', {
+      method: 'POST',
+      body: JSON.stringify({
+        tickers: Array.isArray(tickers) ? tickers : [tickers],
+        horizon_days: horizonDays
+      }),
+    });
+  }
+
+  async getMLModelStatus() {
+    return this.request('/ml/status');
+  }
+
+  async trainMLModel(tickers, lookbackDays = 240, horizonDays = 21) {
+    return this.request('/ml/train', {
+      method: 'POST',
+      body: JSON.stringify({
+        tickers: Array.isArray(tickers) ? tickers : [tickers],
+        lookback_days: lookbackDays,
+        horizon_days: horizonDays
+      }),
+    });
+  }
+
+  async evaluateUserRecommendations(userId, tickers) {
+    return this.request('/ml/evaluate', {
+      method: 'POST',
+      body: JSON.stringify({
+        user_id: userId,
+        tickers: Array.isArray(tickers) ? tickers : [tickers]
+      }),
+    });
+  }
+
+  async getUserRecommendations(userId, tickers = null, limit = 100) {
+    let url = `/ml/recommendations?user_id=${userId}&limit=${limit}`;
+    if (tickers) {
+      const tickersParam = Array.isArray(tickers) ? tickers.join(',') : tickers;
+      url += `&tickers=${tickersParam}`;
+    }
+    return this.request(url);
+  }
 }
 
 const api = new ApiService();

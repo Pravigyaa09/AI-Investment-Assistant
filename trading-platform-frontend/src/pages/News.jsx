@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Newspaper, RefreshCw, ExternalLink, Filter, TrendingUp, Calendar, Building2, ArrowUpCircle, ArrowDownCircle, MinusCircle, AlertCircle, ShoppingCart } from 'lucide-react';
+import { Newspaper, RefreshCw, ExternalLink, Filter, TrendingUp, Calendar, Building2, ArrowUpCircle, ArrowDownCircle, MinusCircle, AlertCircle } from 'lucide-react';
 import api from '../services/api';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
@@ -7,20 +7,20 @@ const News = () => {
   const [news, setNews] = useState([]);
   const [holdings, setHoldings] = useState([]);
   const [categories, setCategories] = useState({});
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedTicker, setSelectedTicker] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState('personalized');
+  const [activeTab, setActiveTab] = useState(null); // Start with no tab selected
   const [articlesPerStock, setArticlesPerStock] = useState(10); // New state for articles per stock
 
   useEffect(() => {
     loadCategories();
-    loadNews();
+    // Don't load news automatically - wait for user to select a category
   }, []);
 
   useEffect(() => {
-    // Reload news when tab changes
+    // Reload news when tab changes (only if a tab is selected)
     if (activeTab) {
       loadNews();
     }
@@ -81,58 +81,82 @@ const News = () => {
   const getRecommendationBadge = (recommendation) => {
     if (!recommendation) return null;
 
-    const { action, confidence, reasons, owned } = recommendation;
+    // Support both old format and new hybrid format
+    const action = recommendation.action || recommendation.suggestion?.action;
+    const confidence = recommendation.confidence || recommendation.suggestion?.confidence || 0;
+    const sentiment_analysis = recommendation.sentiment_analysis;
+    const has_position = recommendation.has_position;
+    const position_aware = recommendation.position_aware;
+    const recommendation_type = recommendation.recommendation_type || 'rule-based';
 
     const badges = {
-      BUY: {
+      'Buy': {
         icon: ArrowUpCircle,
         bgColor: 'bg-green-900/30',
         textColor: 'text-green-400',
         borderColor: 'border-green-500/50'
       },
-      SELL: {
+      'Sell': {
         icon: ArrowDownCircle,
         bgColor: 'bg-red-900/30',
         textColor: 'text-red-400',
         borderColor: 'border-red-500/50'
       },
-      HOLD: {
+      'Hold': {
         icon: MinusCircle,
         bgColor: 'bg-yellow-900/30',
         textColor: 'text-yellow-400',
         borderColor: 'border-yellow-500/50'
       },
-      AVOID: {
+      "Don't Buy": {
         icon: AlertCircle,
-        bgColor: 'bg-orange-900/30',
-        textColor: 'text-orange-400',
-        borderColor: 'border-orange-500/50'
+        bgColor: 'bg-red-900/20',
+        textColor: 'text-red-300',
+        borderColor: 'border-red-500/30'
       }
     };
 
-    const config = badges[action] || badges.HOLD;
+    const config = badges[action] || badges.Hold;
     const Icon = config.icon;
 
     return (
       <div className="mt-4 pt-4 border-t border-dark-border">
-        <div className={`flex items-center justify-between p-3 rounded-lg border ${config.bgColor} ${config.borderColor}`}>
+        {/* Main Recommendation Badge */}
+        <div className={`flex items-center justify-between p-3 rounded-lg border ${config.bgColor} ${config.borderColor} mb-3`}>
           <div className="flex items-center gap-2">
             <Icon className={`w-5 h-5 ${config.textColor}`} />
             <div>
-              <div className="flex items-center gap-2">
-                <span className={`font-semibold ${config.textColor}`}>{action}</span>
-                {owned && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-blue-900/50 text-blue-300 border border-blue-500/30">
-                    Owned
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={`font-semibold ${config.textColor}`}>
+                  {action}
+                </span>
+
+                {/* Position Indicator */}
+                {position_aware && (
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${
+                    has_position
+                      ? 'bg-blue-900/50 text-blue-300 border border-blue-500/30'
+                      : 'bg-purple-900/50 text-purple-300 border border-purple-500/30'
+                  }`}>
+                    {has_position ? 'Owned' : 'Not Owned'}
                   </span>
                 )}
-                {!owned && action === 'BUY' && (
-                  <ShoppingCart className="w-3 h-3 text-green-400" />
+
+                {/* Recommendation Type Badge */}
+                {recommendation_type === 'hybrid' && (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-900/30 text-indigo-300 border border-indigo-500/20">
+                    ML + Sentiment
+                  </span>
                 )}
               </div>
-              <div className="text-xs text-gray-500 mt-1">
-                {reasons && reasons.length > 0 ? reasons.join(', ') : 'Analysis based on market data'}
-              </div>
+
+              {/* Sentiment Clarity Info */}
+              {sentiment_analysis && (
+                <div className="text-xs text-gray-500 mt-1">
+                  Sentiment Index: {sentiment_analysis.sentiment_index?.toFixed(2)} |
+                  Clarity: {(sentiment_analysis.sentiment_strength * 100).toFixed(0)}%
+                </div>
+              )}
             </div>
           </div>
           <div className="text-right">
@@ -142,6 +166,20 @@ const News = () => {
             </div>
           </div>
         </div>
+
+        {/* Sentiment Breakdown (if available) */}
+        {sentiment_analysis && (
+          <div className="bg-gray-900/30 rounded-lg p-2 border border-gray-700/50 text-xs">
+            <div className="flex gap-3 justify-between">
+              <span className="text-gray-500">Sentiment:</span>
+              <div className="flex gap-3">
+                <span className="text-green-400">+{sentiment_analysis.positive}</span>
+                <span className="text-yellow-400">~{sentiment_analysis.neutral}</span>
+                <span className="text-red-400">-{sentiment_analysis.negative}</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -178,7 +216,9 @@ const News = () => {
         <div>
           <h1 className="text-3xl font-bold text-gray-400">Market News</h1>
           <p className="text-sm text-gray-500 mt-1">
-            {activeTab === 'personalized'
+            {!activeTab
+              ? 'Select a category below to view news with AI recommendations'
+              : activeTab === 'personalized'
               ? holdings.length > 0
                 ? `Personalized news for your ${holdings.length} holdings with AI recommendations`
                 : 'General market news with AI recommendations'
@@ -186,14 +226,16 @@ const News = () => {
             }
           </p>
         </div>
-        <button
-          onClick={() => loadNews(true)}
-          disabled={refreshing}
-          className="flex items-center gap-2 px-4 py-2 bg-dark-card border border-dark-border rounded-lg hover:bg-dark-hover disabled:opacity-50 text-gray-400"
-        >
-          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-          {refreshing ? 'Refreshing...' : 'Refresh'}
-        </button>
+        {activeTab && (
+          <button
+            onClick={() => loadNews(true)}
+            disabled={refreshing}
+            className="flex items-center gap-2 px-4 py-2 bg-dark-card border border-dark-border rounded-lg hover:bg-dark-hover disabled:opacity-50 text-gray-400"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            {refreshing ? 'Refreshing...' : 'Refresh'}
+          </button>
+        )}
       </div>
 
       {/* Category Tabs */}
@@ -229,8 +271,33 @@ const News = () => {
         </div>
       </div>
 
-      {/* Filters */}
-      {activeTab === 'personalized' && holdings.length > 0 && (
+      {/* Welcome message when no category is selected */}
+      {!activeTab && (
+        <div className="bg-dark-card rounded-xl border border-dark-border p-12 text-center">
+          <Newspaper className="w-16 h-16 text-blue-500 mx-auto mb-6" />
+          <h3 className="text-2xl font-medium text-gray-300 mb-3">Welcome to Market News</h3>
+          <p className="text-gray-500 mb-6 max-w-2xl mx-auto">
+            Get personalized news with AI-powered recommendations using ML model with sentiment analysis.
+            Select a category above to get started.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto text-left">
+            <div className="bg-black/50 p-4 rounded-lg border border-dark-border">
+              <h4 className="text-blue-400 font-medium mb-2">My Portfolio</h4>
+              <p className="text-sm text-gray-500">News and recommendations for stocks you own</p>
+            </div>
+            <div className="bg-black/50 p-4 rounded-lg border border-dark-border">
+              <h4 className="text-purple-400 font-medium mb-2">Category News</h4>
+              <p className="text-sm text-gray-500">Explore news by sector like Technology, Finance, Energy</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Filters and News - only show when a category is selected */}
+      {activeTab && (
+        <>
+          {/* Filters */}
+          {activeTab === 'personalized' && holdings.length > 0 && (
         <div className="bg-dark-card rounded-xl border border-dark-border p-4">
           <div className="flex flex-col md:flex-row gap-4">
             {/* Ticker Filter */}
@@ -409,6 +476,8 @@ const News = () => {
             </div>
           ))}
         </div>
+      )}
+        </>
       )}
     </div>
   );

@@ -148,6 +148,21 @@ def get_quote(ticker: str) -> float:
         return 0.0
 
 
+def update_cache_from_webhook(ticker: str, price: float, timestamp: int = None) -> None:
+    """
+    Update the price cache with data from Finnhub webhook.
+    This allows real-time price updates without polling.
+
+    Args:
+        ticker: Stock symbol (e.g., "AAPL")
+        price: Current price
+        timestamp: Unix timestamp in milliseconds (optional)
+    """
+    key = f"q:{ticker.upper()}"
+    _cache_put(_cache_q, key, float(price))
+    log.info(f"Cache updated from webhook: {ticker.upper()} = ${price}")
+
+
 def get_candles_close(ticker: str, days: int = 60, resolution: str = "D") -> List[float]:
     """
     Daily closes for the last `days` with fallback:

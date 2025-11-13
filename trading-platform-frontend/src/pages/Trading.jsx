@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Loader2, Star, StarOff, RefreshCw, TrendingUp, TrendingDown } from 'lucide-react';
 import { formatCurrency } from '../utils/formatters';
 import api from '../services/api';
@@ -19,6 +19,7 @@ const Trading = () => {
   const [priceLoading, setPriceLoading] = useState(false);
   const [tradeLoading, setTradeLoading] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
 
   // Use custom hooks
   const { error, loading, handleAsync, clearError } = useErrorHandler();
@@ -35,19 +36,6 @@ const Trading = () => {
     }
   }, [ticker, isInWatchlist]);
 
-  // Auto-refresh price every 10 seconds when enabled
-  useEffect(() => {
-    let intervalId;
-    if (autoRefresh && ticker && marketData) {
-      intervalId = setInterval(() => {
-        fetchPrice(true); // Silent refresh
-      }, 10000); // 10 seconds
-    }
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, [autoRefresh, ticker, marketData]);
-
   const loadPortfolio = async () => {
     await handleAsync(async () => {
       const data = await api.getPortfolio();
@@ -55,7 +43,7 @@ const Trading = () => {
     });
   };
 
-  const fetchPrice = async (silent = false) => {
+  const fetchPrice = useCallback(async (silent = false) => {
     if (!ticker) {
       setMessage({ type: 'error', text: 'Please enter a ticker symbol' });
       return;
@@ -70,6 +58,7 @@ const Trading = () => {
       setPrice(data.price?.toString() || '');
       setMarketData(data);
       setIsWatched(isInWatchlist(ticker));
+      setLastUpdated(new Date());
       if (!silent) setMessage(null);
     } catch (error) {
       if (!silent) {
@@ -84,7 +73,20 @@ const Trading = () => {
     } finally {
       if (!silent) setPriceLoading(false);
     }
-  };
+  }, [ticker, clearError, isInWatchlist]);
+
+  // Auto-refresh price every 10 seconds when enabled
+  useEffect(() => {
+    let intervalId;
+    if (autoRefresh && ticker && marketData) {
+      intervalId = setInterval(() => {
+        fetchPrice(true); // Silent refresh
+      }, 10000); // 10 seconds
+    }
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [autoRefresh, ticker, marketData, fetchPrice]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -140,6 +142,7 @@ const Trading = () => {
       setMarketData(null);
       setIsWatched(false);
       setAutoRefresh(false);
+      setLastUpdated(null);
 
       // Reload portfolio
       await loadPortfolio();
@@ -268,6 +271,11 @@ const Trading = () => {
                         )}
                       </div>
                     </div>
+                    {lastUpdated && (
+                      <div className="text-xs text-gray-500">
+                        Last updated: {lastUpdated.toLocaleTimeString()}
+                      </div>
+                    )}
                     <div className="flex items-center justify-between">
                       <label className="flex items-center text-xs text-gray-500">
                         <input

@@ -7,51 +7,51 @@ from typing import Dict, List
 STOCK_CATEGORIES: Dict[str, Dict[str, List[str]]] = {
     "technology": {
         "name": "Technology",
-        "tickers": ["AAPL", "MSFT", "GOOGL", "META", "NVDA", "AMD", "INTC", "ORCL", "ADBE", "CRM", "CSCO", "IBM", "QCOM", "AVGO", "TXN"]
+        "tickers": ["AAPL", "MSFT", "GOOGL", "META", "NVDA", "AMD", "INTC"]
     },
     "currency": {
         "name": "Currency & Fintech",
-        "tickers": ["COIN", "SQ", "PYPL", "AFRM", "SOFI", "NU", "HOOD", "MARA", "RIOT", "MSTR"]
+        "tickers": ["COIN", "SQ", "PYPL", "AFRM", "SOFI", "NU"]
     },
     "b2b": {
         "name": "B2B Services",
-        "tickers": ["SNOW", "PLTR", "DDOG", "NET", "ZS", "OKTA", "CRWD", "S", "WDAY", "NOW", "TEAM", "ZM", "DOCN", "FROG", "BILL"]
+        "tickers": ["SNOW", "PLTR", "DDOG", "NET", "ZS"]
     },
     "clothing": {
         "name": "Clothing & Fashion",
-        "tickers": ["NKE", "LULU", "ADDYY", "TPR", "RL", "UAA", "VFC", "HBI", "GOOS", "ONON", "CROX", "BIRK", "CPRI"]
+        "tickers": ["NKE", "LULU", "ADDYY", "TPR", "RL"]
     },
     "consumer": {
         "name": "Consumer Goods",
-        "tickers": ["AMZN", "WMT", "TGT", "COST", "HD", "LOW", "DG", "DLTR", "BBY", "FIVE", "BURL"]
+        "tickers": ["AMZN", "WMT", "TGT", "COST", "HD"]
     },
     "automotive": {
         "name": "Automotive",
-        "tickers": ["TSLA", "F", "GM", "RIVN", "LCID", "NIO", "XPEV", "LI", "TM", "HMC", "RACE", "STLA"]
+        "tickers": ["TSLA", "F", "GM", "RIVN", "LCID"]
     },
     "healthcare": {
         "name": "Healthcare & Biotech",
-        "tickers": ["JNJ", "UNH", "PFE", "ABBV", "TMO", "MRNA", "LLY", "GILD", "AMGN", "CVS", "CI", "HUM", "BIIB"]
+        "tickers": ["JNJ", "UNH", "PFE", "ABBV", "TMO"]
     },
     "finance": {
         "name": "Finance & Banking",
-        "tickers": ["JPM", "BAC", "WFC", "GS", "MS", "C", "BLK", "SCHW", "AXP", "V", "MA", "COF", "USB"]
+        "tickers": ["JPM", "BAC", "WFC", "GS", "MS"]
     },
     "energy": {
         "name": "Energy & Utilities",
-        "tickers": ["XOM", "CVX", "COP", "SLB", "EOG", "PXD", "MPC", "VLO", "PSX", "OXY", "HAL", "DVN", "FANG"]
+        "tickers": ["XOM", "CVX", "COP", "SLB", "EOG"]
     },
     "entertainment": {
         "name": "Entertainment & Media",
-        "tickers": ["DIS", "NFLX", "PARA", "WBD", "SPOT", "RBLX", "EA", "TTWO", "ATVI", "U", "LYV", "FOXA"]
+        "tickers": ["DIS", "NFLX", "PARA", "WBD", "SPOT"]
     },
     "food": {
         "name": "Food & Beverage",
-        "tickers": ["MCD", "SBUX", "CMG", "YUM", "QSR", "DPZ", "WEN", "JACK", "PZZA", "DNKN", "KO", "PEP", "MNST"]
+        "tickers": ["MCD", "SBUX", "CMG", "YUM", "QSR"]
     },
     "realestate": {
         "name": "Real Estate",
-        "tickers": ["Z", "RDFN", "OPEN", "COMP", "EXPI", "CBRE", "JLL", "AMT", "PLD", "SPG", "O", "WELL"]
+        "tickers": ["Z", "RDFN", "OPEN", "COMP", "EXPI"]
     }
 }
 

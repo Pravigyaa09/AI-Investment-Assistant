@@ -17,7 +17,11 @@ def _demo_article(t: str, reason: str):
     }
 
 def fetch_company_news(ticker: str, count: int = 25) -> List[Dict]:
-    """Fetch news from Finnhub over a 90-day window. Graceful fallbacks."""
+    """Fetch news from Finnhub over a 90-day window. Graceful fallbacks.
+
+    Note: Finnhub free tier has 60 requests/minute limit.
+    When hitting rate limits with parallel requests, the system gracefully falls back to demo articles.
+    """
     if not settings.FINNHUB_API_KEY:
         return [_demo_article(ticker, "no-api-key")]
 
@@ -29,15 +33,23 @@ def fetch_company_news(ticker: str, count: int = 25) -> List[Dict]:
     )
 
     try:
-        r = requests.get(url, timeout=20)
+        # 30s timeout to allow for slow responses during high load/rate limiting
+        r = requests.get(url, timeout=30)
         if r.status_code == 429:
+            # Rate limited (60 req/min on free tier)
+            log.warning(f"Finnhub rate-limited for {ticker}. Free tier allows 60 req/min. Consider pagination or caching.")
             return [_demo_article(ticker, "rate-limited")]
         r.raise_for_status()
         data = r.json() or []
+    except requests.Timeout:
+        # Timeout - API is slow or overloaded
+        log.warning(f"Finnhub timeout for {ticker} (30s). API may be under load. Returning demo article.")
+        return [_demo_article(ticker, "timeout")]
     except requests.RequestException as e:
-        log.exception("Finnhub request failed")
+        log.warning(f"Finnhub request failed for {ticker}: {e.__class__.__name__}")
         return [_demo_article(ticker, f"provider-error:{e.__class__.__name__}")]
     except ValueError:
+        log.warning(f"Finnhub returned invalid JSON for {ticker}")
         return [_demo_article(ticker, "bad-json")]
 
     out = []

@@ -47,7 +47,7 @@ def _collect_dataset(
             def build_snapshot():
                 from app.ml.features import build_features as bf
                 # use smaller top_n_news to be gentle on API
-                return bf(t, lookback_days=120, news_window_days=2, top_n_news=6)
+                return bf(t, lookback_days=120, top_n_news=6)
             fp = build_snapshot()
             xr = fp.X
             for k in xr.keys(): feats_seen.add(k)
@@ -77,7 +77,7 @@ def train_and_save(
     # classifier (probabilities)
     clf = Pipeline([
         ("scaler", StandardScaler(with_mean=False)),
-        ("lr", LogisticRegression(max_iter=200, multi_class="auto"))
+        ("lr", LogisticRegression(max_iter=200))  # multi_class removed (defaults to multinomial)
     ])
     clf.fit(X, y_cls)
 
