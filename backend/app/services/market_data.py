@@ -117,12 +117,14 @@ def _candles_from_stooq(ticker: str, start_dt: datetime, end_dt: datetime) -> Li
 def _provider_order() -> List[str]:
     pref = (settings.PREFERRED_PROVIDER or "auto").lower()
     if pref == "finnhub":
-        return ["finnhub", "yahoo", "stooq"]
+        return ["finnhub", "stooq"]  # Skip yahoo - it's unreliable
     if pref == "yahoo":
-        return ["yahoo", "finnhub", "stooq"]
+        return ["yahoo", "stooq"]
     if pref == "stooq":
-        return ["stooq", "yahoo", "finnhub"]
-    return ["finnhub", "yahoo", "stooq"]
+        return ["stooq"]  # Stooq only
+    # Default: Skip Finnhub for candles (doesn't provide them), skip Yahoo (unreliable)
+    # Use Stooq as primary for historical data
+    return ["stooq"]
 
 
 # ===================== PUBLIC API =====================
@@ -144,6 +146,21 @@ def get_quote(ticker: str) -> float:
     except FinanceDataError as e:
         log.error("quote failed for %s: %s", ticker, e)
         return 0.0
+
+
+def update_cache_from_webhook(ticker: str, price: float, timestamp: int = None) -> None:
+    """
+    Update the price cache with data from Finnhub webhook.
+    This allows real-time price updates without polling.
+
+    Args:
+        ticker: Stock symbol (e.g., "AAPL")
+        price: Current price
+        timestamp: Unix timestamp in milliseconds (optional)
+    """
+    key = f"q:{ticker.upper()}"
+    _cache_put(_cache_q, key, float(price))
+    log.info(f"Cache updated from webhook: {ticker.upper()} = ${price}")
 
 
 def get_candles_close(ticker: str, days: int = 60, resolution: str = "D") -> List[float]:
@@ -276,6 +293,82 @@ def get_candles_rows_for_chart(ticker: str, days: int = 180) -> Tuple[List[str],
     _cache_put(_cache_chart, key, val)
     log.info("chart rows provider=synthetic ticker=%s days=%d", ticker, days)
     return val
+
+
+def get_candles_ohlcv_for_chart(ticker: str, days: int = 180) -> Tuple[List[Dict], str]:
+    """
+    Get full OHLCV data for charting with volume bars.
+    Returns (rows, provider) where each row has: date, open, high, low, close, volume
+    """
+    days = max(1, int(days))
+
+    if int(settings.DISABLE_CANDLES or 0) == 1:
+        last = get_quote(ticker) or 100.0
+        end_dt = datetime.now(tz=timezone.utc)
+        today = _date.fromtimestamp(int(end_dt.timestamp()))
+        rows = []
+        for i in range(days):
+            dt = (today - timedelta(days=(days - 1 - i))).isoformat()
+            rows.append({
+                "date": dt,
+                "open": last,
+                "high": last,
+                "low": last,
+                "close": last,
+                "volume": 1000000
+            })
+        return rows, "synthetic"
+
+    # No caching for OHLCV to keep it simple for now
+    end_dt = datetime.now(tz=timezone.utc)
+    start_dt = end_dt - timedelta(days=days)
+
+    for prov in _provider_order():
+        try:
+            if prov == "finnhub":
+                raw_rows = _candles_from_finnhub(ticker, start_dt, end_dt)
+            elif prov == "yahoo":
+                raw_rows = _candles_from_yahoo(ticker, start_dt, end_dt)
+            else:
+                raw_rows = _candles_from_stooq(ticker, start_dt, end_dt)
+
+            if raw_rows:
+                raw_rows.sort(key=lambda r: r["time"])
+                processed = []
+                for r in raw_rows:
+                    processed.append({
+                        "date": r["time"].date().isoformat(),
+                        "open": float(r.get("open", r.get("close", 0))),
+                        "high": float(r.get("high", r.get("close", 0))),
+                        "low": float(r.get("low", r.get("close", 0))),
+                        "close": float(r["close"]),
+                        "volume": int(r.get("volume", 0))
+                    })
+                log.info("OHLCV chart provider=%s ticker=%s days=%d points=%d", prov, ticker, days, len(processed))
+                return processed, prov
+            else:
+                log.warning("OHLCV chart provider=%s returned no rows for %s", prov, ticker)
+        except FinanceDataError as e:
+            log.warning("OHLCV chart provider=finnhub failed for %s: %s", ticker, e)
+        except Exception as e:
+            log.warning("OHLCV chart provider=%s failed for %s: %s", prov, ticker, e)
+
+    # Synthetic fallback
+    last = get_quote(ticker) or 100.0
+    today = _date.fromtimestamp(int(end_dt.timestamp()))
+    rows = []
+    for i in range(days):
+        dt = (today - timedelta(days=(days - 1 - i))).isoformat()
+        rows.append({
+            "date": dt,
+            "open": last,
+            "high": last,
+            "low": last,
+            "close": last,
+            "volume": 1000000
+        })
+    log.info("OHLCV chart provider=synthetic ticker=%s days=%d", ticker, days)
+    return rows, "synthetic"
 
 
 # ===== Debug helpers =====

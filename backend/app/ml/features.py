@@ -2,7 +2,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
-from datetime import datetime, timedelta, timezone
 
 from app.services.market_data import get_candles_close, compute_volatility, simple_trend_score
 from app.services.finnhub_client import fetch_company_news
@@ -27,10 +26,11 @@ def _safe_finbert_scores(title: str) -> Tuple[float, float, float]:
         return (0.0, 1.0, 0.0)
     if _FINBERT_OK and FinBERT:
         try:
-            probs = FinBERT.predict_proba(title)  # expects dict: {positive,neutral,negative}
-            return (float(probs.get("positive", 0.0)),
-                    float(probs.get("neutral", 1.0)),
-                    float(probs.get("negative", 0.0)))
+            result = FinBERT.predict(title)  # returns {label, score, all_scores: {positive, negative, neutral}}
+            all_scores = result.get("all_scores", {})
+            return (float(all_scores.get("positive", 0.0)),
+                    float(all_scores.get("neutral", 1.0)),
+                    float(all_scores.get("negative", 0.0)))
         except Exception:
             pass
     # tiny keyword fallback
@@ -62,12 +62,13 @@ def build_features(
     ticker: str,
     *,
     lookback_days: int = 120,
-    news_window_days: int = 3,
     top_n_news: int = 12,
 ) -> FeaturePack:
     """
     Build ML features for one ticker as of now.
     Returns FeaturePack with X (features) and info for UX.
+
+    Note: News is fetched from Finnhub's 90-day window (internal to fetch_company_news).
     """
     t = ticker.upper().strip()
 
@@ -91,10 +92,8 @@ def build_features(
     r10 = ret(10)
     r20 = ret(20)
 
-    # FinBERT news in recent window
-    end_dt = datetime.now(tz=timezone.utc)
-    start_dt = end_dt - timedelta(days=news_window_days)
-    news = fetch_company_news(t, count=top_n_news, start=start_dt, end=end_dt) or []
+    # FinBERT news in recent window (fetch_company_news uses 90-day window internally)
+    news = fetch_company_news(t, count=top_n_news) or []
 
     pos_vals, neu_vals, neg_vals = [], [], []
     sentiments = []  # for UI
